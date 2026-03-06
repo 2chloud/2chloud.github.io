@@ -329,39 +329,28 @@
 <body>
 
 <div class="header">
-  <div class="label">복습 퀴즈 · 1–2차시</div>
+  <div class="label">복습 퀴즈 · 1차시</div>
   <h1>거듭제곱근 <span>OX</span></h1>
   <p class="subtitle">문제를 읽고 O 또는 X를 선택한 뒤, 정답을 확인하세요</p>
 </div>
 
 <div class="progress-bar">
   <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
-  <div class="progress-text" id="progressText">0 / 7</div>
+  <div class="progress-text" id="progressText">0 / 5</div>
 </div>
 
 <div class="quiz-container" id="quizContainer"></div>
 
 <div class="result-section" id="resultSection">
   <div class="result-title">QUIZ COMPLETE</div>
-  <div class="result-score" id="resultScore">0/7</div>
+  <div class="result-score" id="resultScore">0/5</div>
   <div class="result-sub" id="resultSub"></div>
-  <div class="result-breakdown">
-    <div class="breakdown-box ch1">
-      <div class="breakdown-label">1차시</div>
-      <div class="breakdown-score" id="score1">0/5</div>
-    </div>
-    <div class="breakdown-box ch2">
-      <div class="breakdown-label">2차시</div>
-      <div class="breakdown-score" id="score2">0/2</div>
-    </div>
-  </div>
   <div class="result-msg" id="resultMsg"></div>
   <button class="btn-reset" onclick="resetAll()">다시 풀기</button>
 </div>
 
 <script>
 const quizData = [
-  // ── 1차시 ──
   {
     num: "Q1", chapter: 1,
     tag: "n제곱근의 정의",
@@ -411,34 +400,6 @@ const quizData = [
     <span class="math">x⁴ = -49</span>를 만족하는 실수 <span class="math">x</span>는 없습니다.<br>
     짝수 지수의 거듭제곱은 항상 <span class="math">≥ 0</span>이므로 음수가 될 수 없습니다.<br><br>
     <span class="warn">혼동 주의!</span> <span class="math">⁴√49 = √7</span>과 혼동한 오답입니다.`
-  },
-  // ── 2차시 ──
-  {
-    num: "Q6", chapter: 2,
-    tag: "성질 적용 조건",
-    question: '<span class="math">⁴√(-2) · ⁴√(-4) = ⁴√8</span> 이다.',
-    answer: "X",
-    explanation: `거듭제곱근의 성질 <span class="math">ⁿ√a · ⁿ√b = ⁿ√(ab)</span>는 <strong>a &gt; 0, b &gt; 0 일 때만</strong> 성립합니다.<br><br>
-    <span class="math">n = 4</span>는 <strong>짝수</strong>이고 <span class="math">a = -2 &lt; 0</span>이므로,<br>
-    <span class="math">⁴√(-2)</span> 자체가 <span class="warn">실수에서 존재하지 않습니다.</span><br><br>
-    존재하지도 않는 수를 곱하는 것이므로 등식 자체가 성립하지 않습니다.<br><br>
-    <div class="divider"></div>
-    <span class="warn">혼동 주의!</span> n이 <strong>홀수</strong>이면 음수도 실수 n제곱근이 존재하므로<br>
-    <span class="math">³√(-2) · ³√(-4) = ³√8 = 2</span>는 <span class="key">성립합니다.</span><br>
-    짝수냐 홀수냐가 핵심!`
-  },
-  {
-    num: "Q7", chapter: 2,
-    tag: "짝수 n + 절댓값",
-    question: '<span class="math">⁴√(-3)⁴ = -3</span> 이다.',
-    answer: "X",
-    explanation: `<span class="math">n</span>이 <strong>짝수</strong>일 때 <span class="math">ⁿ√aⁿ = |a|</span> 입니다.<br><br>
-    <span class="math">⁴√(-3)⁴ = ⁴√81 = 3 = |-3|</span><br><br>
-    <span class="math">(-3)⁴ = 81 &gt; 0</span>이므로 네제곱근은 <span class="key">양수</span>입니다.<br><br>
-    <div class="divider"></div>
-    n이 짝수: <span class="math">ⁿ√aⁿ = |a|</span><br>
-    n이 홀수: <span class="math">ⁿ√aⁿ = a</span><br><br>
-    중학교 <span class="math">√a² = |a|</span>가 <span class="math">n=2</span>인 특수 케이스였습니다.`
   },
 ];
 
@@ -530,20 +491,14 @@ function updateProgress() {
 function checkAllDone() {
   if (!revealed.every(Boolean)) return;
 
-  let total = 0, ch1 = 0, ch2 = 0;
+  let total = 0;
   quizData.forEach((q, i) => {
-    if (userAnswers[i] === q.answer) {
-      total++;
-      if (q.chapter === 1) ch1++;
-      else ch2++;
-    }
+    if (userAnswers[i] === q.answer) total++;
   });
 
-  const msgs = ["다시 한번 복습해봐요!", "조금 더 확인이 필요해요.", "반 이상 왔어요!", "잘 하고 있어요!", "거의 완벽해요!", "아쉬운 한 문제!", "아쉬운 한 문제!", "완벽해요! 🎉"];
-  document.getElementById('resultScore').textContent = `${total}/7`;
-  document.getElementById('resultSub').textContent = `정답 ${total}개 · 오답 ${7 - total}개`;
-  document.getElementById('score1').textContent = `${ch1}/5`;
-  document.getElementById('score2').textContent = `${ch2}/2`;
+  const msgs = ["다시 한번 복습해봐요!", "조금 더 확인이 필요해요.", "반 이상 왔어요!", "잘 하고 있어요!", "아쉬운 한 문제!", "완벽해요! 🎉"];
+  document.getElementById('resultScore').textContent = `${total}/5`;
+  document.getElementById('resultSub').textContent = `정답 ${total}개 · 오답 ${5 - total}개`;
   document.getElementById('resultMsg').textContent = msgs[total] || "";
 
   const section = document.getElementById('resultSection');
