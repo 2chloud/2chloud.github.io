@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>거듭제곱근 OX 퀴즈</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3350;
+    --text: #e8eaf6;
+    --text-muted: #7986cb;
+    --accent: #5c6bc0;
+    --accent-bright: #7986cb;
+    --correct: #26a69a;
+    --correct-bg: #0d2e2b;
+    --correct-border: #26a69a;
+    --wrong: #ef5350;
+    --wrong-bg: #2d1010;
+    --wrong-border: #ef5350;
+    --gold: #ffd54f;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'Noto Sans KR', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding: 40px 20px 80px;
+    background-image:
+      radial-gradient(ellipse 80% 40% at 50% -10%, rgba(92,107,192,0.15) 0%, transparent 70%);
+  }
+
+  /* 헤더 */
+  .header {
+    text-align: center;
+    margin-bottom: 56px;
+  }
+  .header .label {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 3px;
+    color: var(--accent-bright);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    padding: 6px 16px;
+    border: 1px solid var(--border);
+    border-radius: 100px;
+  }
+  .header h1 {
+    font-size: clamp(28px, 5vw, 44px);
+    font-weight: 900;
+    letter-spacing: -1px;
+    line-height: 1.1;
+    margin-bottom: 12px;
+  }
+  .header h1 span {
+    color: var(--accent-bright);
+  }
+  .header .subtitle {
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  /* 진행 바 */
+  .progress-bar {
+    max-width: 680px;
+    margin: 0 auto 48px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .progress-track {
+    flex: 1;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent-bright));
+    border-radius: 2px;
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 0%;
+  }
+  .progress-text {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  /* 카드 */
+  .quiz-container {
+    max-width: 680px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: border-color 0.3s, transform 0.2s;
+    position: relative;
+  }
+  .card:hover {
+    border-color: var(--accent);
+    transform: translateY(-1px);
+  }
+  .card.revealed-O {
+    border-color: var(--correct-border);
+    background: linear-gradient(135deg, var(--surface) 0%, var(--correct-bg) 100%);
+  }
+  .card.revealed-X {
+    border-color: var(--wrong-border);
+    background: linear-gradient(135deg, var(--surface) 0%, var(--wrong-bg) 100%);
+  }
+
+  /* 카드 번호 배지 */
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .q-num {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent-bright);
+    background: rgba(92,107,192,0.15);
+    padding: 4px 10px;
+    border-radius: 6px;
+    letter-spacing: 1px;
+  }
+  .q-tag {
+    font-size: 11px;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+  }
+
+  /* 문제 */
+  .card-body {
+    padding: 24px;
+  }
+  .question {
+    font-size: 17px;
+    font-weight: 500;
+    line-height: 1.7;
+    margin-bottom: 20px;
+    color: var(--text);
+  }
+  .question .math {
+    font-family: var(--mono);
+    font-size: 15px;
+    background: rgba(255,255,255,0.05);
+    padding: 2px 6px;
+    border-radius: 4px;
+    color: var(--gold);
+  }
+
+  /* OX 버튼 */
+  .btn-row {
+    display: flex;
+    gap: 10px;
+  }
+  .btn-ox {
+    flex: 1;
+    padding: 14px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface2);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 22px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 2px;
+  }
+  .btn-ox:hover {
+    transform: scale(1.03);
+  }
+  .btn-ox.O:hover { border-color: var(--correct); color: var(--correct); background: rgba(38,166,154,0.08); }
+  .btn-ox.X:hover { border-color: var(--wrong); color: var(--wrong); background: rgba(239,83,80,0.08); }
+  .btn-ox.selected-O { border-color: var(--correct); color: var(--correct); background: rgba(38,166,154,0.12); }
+  .btn-ox.selected-X { border-color: var(--wrong); color: var(--wrong); background: rgba(239,83,80,0.12); }
+  .card.revealed-O .btn-ox.O,
+  .card.revealed-X .btn-ox.X {
+    opacity: 1;
+  }
+  .card.revealed-O .btn-ox.X,
+  .card.revealed-X .btn-ox.O {
+    opacity: 0.3;
+  }
+
+  /* 정답 공개 버튼 */
+  .btn-reveal {
+    width: 100%;
+    margin-top: 12px;
+    padding: 12px;
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--sans);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+  .btn-reveal:hover {
+    border-color: var(--accent);
+    color: var(--accent-bright);
+    background: rgba(92,107,192,0.05);
+  }
+  .btn-reveal:disabled {
+    display: none;
+  }
+
+  /* 해설 영역 */
+  .answer-panel {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .answer-panel.open {
+    max-height: 400px;
+  }
+  .answer-inner {
+    padding: 0 24px 24px;
+  }
+  .answer-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 28px;
+    margin-bottom: 16px;
+    padding: 8px 20px;
+    border-radius: 10px;
+  }
+  .answer-tag.O {
+    color: var(--correct);
+    background: rgba(38,166,154,0.12);
+    border: 1px solid rgba(38,166,154,0.3);
+  }
+  .answer-tag.X {
+    color: var(--wrong);
+    background: rgba(239,83,80,0.12);
+    border: 1px solid rgba(239,83,80,0.3);
+  }
+  .answer-label {
+    font-size: 13px;
+    font-family: var(--sans);
+    font-weight: 500;
+    letter-spacing: 1px;
+  }
+  .answer-text {
+    font-size: 14px;
+    line-height: 1.8;
+    color: #b0bec5;
+  }
+  .answer-text strong {
+    color: var(--text);
+    font-weight: 700;
+  }
+  .answer-text .math {
+    font-family: var(--mono);
+    font-size: 13px;
+    background: rgba(255,255,255,0.05);
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: var(--gold);
+  }
+  .answer-text .key {
+    color: var(--accent-bright);
+    font-weight: 700;
+  }
+  .answer-text .warn {
+    color: var(--wrong);
+    font-weight: 700;
+  }
+
+  /* 구분선 */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 16px 0;
+    opacity: 0.5;
+  }
+
+  /* 결과 카드 */
+  .result-section {
+    max-width: 680px;
+    margin: 32px auto 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    text-align: center;
+    display: none;
+  }
+  .result-section.show { display: block; animation: fadeUp 0.5s ease; }
+  .result-title {
+    font-size: 13px;
+    letter-spacing: 2px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+    margin-bottom: 16px;
+  }
+  .result-score {
+    font-size: 64px;
+    font-weight: 900;
+    font-family: var(--mono);
+    color: var(--gold);
+    line-height: 1;
+    margin-bottom: 8px;
+  }
+  .result-msg {
+    font-size: 15px;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+  }
+  .btn-reset {
+    padding: 12px 32px;
+    background: var(--accent);
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.5px;
+  }
+  .btn-reset:hover {
+    background: var(--accent-bright);
+    transform: translateY(-2px);
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.04); }
+    100% { transform: scale(1); }
+  }
+  .pop { animation: pop 0.25s ease; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="label">복습 퀴즈 · 1차시</div>
+  <h1>거듭제곱근 <span>OX</span></h1>
+  <p class="subtitle">문제를 읽고 O 또는 X를 선택한 뒤, 정답을 확인하세요</p>
+</div>
+
+<div class="progress-bar">
+  <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+  <div class="progress-text" id="progressText">0 / 5</div>
+</div>
+
+<div class="quiz-container" id="quizContainer"></div>
+<div class="result-section" id="resultSection">
+  <div class="result-title">QUIZ COMPLETE</div>
+  <div class="result-score" id="resultScore">0/5</div>
+  <div class="result-msg" id="resultMsg"></div>
+  <button class="btn-reset" onclick="resetAll()">다시 풀기</button>
+</div>
+
+<script>
+const quizData = [
+  {
+    num: "Q1",
+    tag: "n제곱근의 정의",
+    question: '<span class="math">(-2)⁴ = 16</span> 이므로, <span class="math">-2</span>는 <span class="math">16</span>의 네제곱근이다.',
+    answer: "O",
+    explanation: `<strong>n제곱근의 정의</strong> : <span class="math">xⁿ = a</span>를 만족하는 실수 <span class="math">x</span>를 <span class="math">a</span>의 <span class="math">n</span>제곱근이라 합니다.<br><br>
+    <span class="math">(-2)⁴ = 16</span>이므로 <span class="math">-2</span>는 <span class="math">x⁴ = 16</span>의 실수 해 → <span class="key">네제곱근이 맞습니다.</span><br><br>
+    <span class="warn">주의!</span> <span class="math">⁴√16 = 2</span> (양수인 것 하나) 와 "16의 네제곱근"(<span class="math">±2</span> 모두)은 다른 개념입니다.`
+  },
+  {
+    num: "Q2",
+    tag: "ⁿ√a 기호의 의미",
+    question: '<span class="math">⁴√16</span>의 값은 <span class="math">2</span>와 <span class="math">-2</span>, 두 개다.',
+    answer: "X",
+    explanation: `<span class="math">⁴√16</span>은 16의 네제곱근 <strong>중 양수인 것 하나</strong>만을 가리킵니다.<br><br>
+    따라서 <span class="math">⁴√16 = 2</span>로, 값은 <span class="key">하나</span>입니다.<br><br>
+    <span class="warn">혼동 주의!</span><br>
+    "16의 네제곱근" → <span class="math">±2</span> (두 개)<br>
+    "<span class="math">⁴√16</span>의 값" → <span class="math">2</span> (양수 하나)`
+  },
+  {
+    num: "Q3",
+    tag: "홀수 n + 음수 a",
+    question: '<span class="math">³√(-8) = -2</span> 이다.',
+    answer: "O",
+    explanation: `<span class="math">n</span>이 <strong>홀수</strong>이면, <span class="math">a</span>가 음수여도 실수 <span class="math">n</span>제곱근이 <span class="key">1개 존재</span>합니다.<br><br>
+    <span class="math">(-2)³ = -8</span> ✓ 이므로 <span class="math">³√(-8) = -2</span><br><br>
+    <span class="warn">"루트 안에 음수는 안 된다"</span>는 <strong>제곱근(n=2)에서의 이야기</strong>입니다.<br>
+    n이 홀수일 때는 음수도 OK!`
+  },
+  {
+    num: "Q4",
+    tag: "a=0 예외 케이스",
+    question: '<span class="math">0</span>의 네제곱근 중 실수인 것은 없다.',
+    answer: "X",
+    explanation: `<span class="math">x⁴ = 0</span>의 실수 해는 <span class="math">x = 0</span>으로 <span class="key">1개 존재</span>합니다.<br><br>
+    "없다"가 되는 경우는 <span class="math">n</span>이 <strong>짝수</strong>이고 <span class="math">a < 0</span>일 때입니다.<br>
+    <span class="math">a = 0</span>이면 n의 홀짝 관계없이 <span class="math">x = 0</span>이 항상 해입니다.<br><br>
+    <div class="divider"></div>
+    존재성 정리: <span class="math">n</span> 짝수 + <span class="math">a > 0</span> → 2개 / <span class="math">a = 0</span> → 1개 / <span class="math">a < 0</span> → <span class="warn">없음</span>`
+  },
+  {
+    num: "Q5",
+    tag: "짝수 n + 음수 a",
+    question: '<span class="math">-49</span>의 네제곱근 중 실수인 것은 <span class="math">-√7, √7</span>이다.',
+    answer: "X",
+    explanation: `<span class="math">n</span>이 <strong>짝수</strong>이고 <span class="math">a < 0</span>이면 실수 <span class="math">n</span>제곱근은 <span class="warn">존재하지 않습니다.</span><br><br>
+    <span class="math">x⁴ = -49</span>를 만족하는 실수 <span class="math">x</span>는 없습니다.<br>
+    (짝수 지수의 거듭제곱은 항상 <span class="math">≥ 0</span>이므로 음수가 될 수 없음)<br><br>
+    <span class="warn">혼동 주의!</span> <span class="math">⁴√49 = √7</span> 과 혼동한 오답입니다.`
+  }
+];
+
+let revealed = new Array(quizData.length).fill(false);
+let userAnswers = new Array(quizData.length).fill(null);
+
+function renderQuiz() {
+  const container = document.getElementById('quizContainer');
+  container.innerHTML = '';
+
+  quizData.forEach((q, i) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.id = `card-${i}`;
+
+    card.innerHTML = `
+      <div class="card-header">
+        <span class="q-num">${q.num}</span>
+        <span class="q-tag">${q.tag}</span>
+      </div>
+      <div class="card-body">
+        <div class="question">${q.question}</div>
+        <div class="btn-row">
+          <button class="btn-ox O" onclick="selectAnswer(${i}, 'O')">O</button>
+          <button class="btn-ox X" onclick="selectAnswer(${i}, 'X')">X</button>
+        </div>
+        <button class="btn-reveal" id="reveal-btn-${i}" onclick="revealAnswer(${i})">▼ 정답 확인</button>
+        <div class="answer-panel" id="answer-${i}">
+          <div class="answer-inner">
+            <div class="divider"></div>
+            <div class="answer-tag ${q.answer}">
+              ${q.answer}
+              <span class="answer-label">${q.answer === 'O' ? '맞습니다' : '틀렸습니다'}</span>
+            </div>
+            <div class="answer-text">${q.explanation}</div>
+          </div>
+        </div>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+
+  updateProgress();
+}
+
+function selectAnswer(i, val) {
+  userAnswers[i] = val;
+  const card = document.getElementById(`card-${i}`);
+  const btns = card.querySelectorAll('.btn-ox');
+  btns.forEach(b => {
+    b.classList.remove('selected-O', 'selected-X');
+  });
+  card.querySelector(`.btn-ox.${val}`).classList.add(`selected-${val}`);
+  card.classList.add('pop');
+  setTimeout(() => card.classList.remove('pop'), 250);
+}
+
+function revealAnswer(i) {
+  if (revealed[i]) return;
+  revealed[i] = true;
+
+  const q = quizData[i];
+  const card = document.getElementById(`card-${i}`);
+  const panel = document.getElementById(`answer-${i}`);
+  const revealBtn = document.getElementById(`reveal-btn-${i}`);
+
+  card.classList.add(`revealed-${q.answer}`);
+  panel.classList.add('open');
+  revealBtn.disabled = true;
+
+  updateProgress();
+  checkAllDone();
+}
+
+function updateProgress() {
+  const done = revealed.filter(Boolean).length;
+  const total = quizData.length;
+  document.getElementById('progressFill').style.width = `${(done / total) * 100}%`;
+  document.getElementById('progressText').textContent = `${done} / ${total}`;
+}
+
+function checkAllDone() {
+  if (revealed.every(Boolean)) {
+    let correct = 0;
+    quizData.forEach((q, i) => {
+      if (userAnswers[i] === q.answer) correct++;
+    });
+    const section = document.getElementById('resultSection');
+    const msgs = [
+      "다시 한번 복습해봐요!",
+      "조금 더 확인이 필요해요.",
+      "절반 왔어요! 한번 더!",
+      "잘 했어요! 거의 다 왔어요.",
+      "아쉬운 한 문제! 개념 확인!",
+      "완벽해요! 2차시 준비 완료 🎉"
+    ];
+    document.getElementById('resultScore').textContent = `${correct}/5`;
+    document.getElementById('resultMsg').textContent = msgs[correct] || "";
+    section.classList.add('show');
+    section.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+function resetAll() {
+  revealed = new Array(quizData.length).fill(false);
+  userAnswers = new Array(quizData.length).fill(null);
+  document.getElementById('resultSection').classList.remove('show');
+  renderQuiz();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+renderQuiz();
+</script>
+</body>
+</html>
