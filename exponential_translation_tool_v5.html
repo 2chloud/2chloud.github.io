@@ -1,0 +1,188 @@
+
+<style>
+  .ctrl{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+  .ctrl label{font-size:13px;color:var(--color-text-secondary);width:52px;flex-shrink:0;}
+  .ctrl input[type=range]{flex:1;}
+  .ctrl .val{font-size:13px;font-weight:500;min-width:36px;text-align:right;color:var(--color-text-primary);}
+  .badge{display:inline-block;font-size:12px;padding:3px 10px;border-radius:var(--border-radius-md);margin:3px 2px;}
+  #info-box{font-size:13px;line-height:2.1;padding:10px 14px;border-radius:var(--border-radius-md);background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);margin-top:10px;}
+  .mode-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .mode-row label{font-size:13px;color:var(--color-text-secondary);width:52px;flex-shrink:0;}
+  .mode-btn{font-size:12px;padding:4px 10px;cursor:pointer;}
+  .mode-btn.active{background:var(--color-background-info);color:var(--color-text-info);border-color:var(--color-border-info);}
+  .mono-tag{display:inline-block;font-size:12px;padding:2px 8px;border-radius:var(--border-radius-md);font-weight:500;}
+  #fn-label{font-size:20px;font-weight:500;margin:0 0 16px;color:var(--color-text-primary);line-height:1.8;}
+  #fn-label sup{font-size:12px;vertical-align:super;}
+  .q-chip{display:inline-flex;align-items:center;justify-content:center;background:#FFF4C2;color:#7A5C00;border-radius:50%;width:1.3em;height:1.3em;font-size:inherit;font-weight:500;}
+  .asym-q{background:#FFF4C2;color:#7A5C00;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;width:1.6em;height:1.6em;font-size:13px;font-weight:500;vertical-align:middle;}
+</style>
+
+<div style="display:grid;grid-template-columns:1fr 300px;gap:20px;padding:1rem 0;">
+  <div>
+    <canvas id="cv" width="460" height="380" style="width:100%;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-tertiary);display:block;"></canvas>
+  </div>
+  <div>
+    <p style="font-size:13px;color:var(--color-text-secondary);margin:0 0 4px;">함수식</p>
+    <div id="fn-label"></div>
+
+    <div class="ctrl">
+      <label>밑 a</label>
+      <input type="range" id="sl-a" min="1.1" max="5" step="0.1" value="2">
+      <span class="val" id="vl-a">2</span>
+    </div>
+    <div class="mode-row">
+      <label></label>
+      <button class="mode-btn active" id="btn-big" onclick="setMode('big')">a &gt; 1</button>
+      <button class="mode-btn" id="btn-small" onclick="setMode('small')">0 &lt; a &lt; 1</button>
+      <span id="mono-tag" class="mono-tag" style="background:var(--color-background-success);color:var(--color-text-success);">증가함수 ↗</span>
+    </div>
+    <div class="ctrl">
+      <label>이동 p</label>
+      <input type="range" id="sl-p" min="-5" max="5" step="0.5" value="0">
+      <span class="val" id="vl-p">0</span>
+    </div>
+    <div class="ctrl">
+      <label>이동 q</label>
+      <input type="range" id="sl-q" min="-5" max="5" step="0.5" value="0">
+      <span class="val" id="vl-q" style="background:#FFF4C2;color:#7A5C00;border-radius:50%;width:28px;height:28px;display:inline-flex;align-items:center;justify-content:center;">0</span>
+    </div>
+
+    <div id="info-box">
+      <span class="badge" style="background:var(--color-background-danger);color:var(--color-text-danger);">점근선</span> y = <span id="i-asym-q" class="asym-q">0</span><br>
+      <span class="badge" style="background:var(--color-background-info);color:var(--color-text-info);">기준점①</span><span id="i-a1"></span><br>
+      <span class="badge" style="background:var(--color-background-info);color:var(--color-text-info);">기준점②</span><span id="i-a2"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+const cv=document.getElementById('cv');
+const ctx=cv.getContext('2d');
+let a=2,p=0,q=0;
+const W=460,H=380,ox=W/2,oy=H/2,sc=36;
+const toX=x=>ox+x*sc, toY=y=>oy-y*sc, fromX=px=>(px-ox)/sc;
+const fmt=v=>{const n=Number(v.toFixed(2));return n%1===0?String(n):String(n);};
+
+function buildFnHTML(a,p,q){
+  const aStr=a%1===0?String(Math.round(a)):fmt(a);
+  let exp='';
+  if(p===0)     exp='x';
+  else if(p>0)  exp='x&minus;'+fmt(p);
+  else          exp='x+'+fmt(-p);
+  let html='y = '+aStr+'<sup>'+exp+'</sup>';
+  if(q!==0){
+    html+=(q>0?' + ':' &minus; ')+'<span class="q-chip">'+fmt(Math.abs(q))+'</span>';
+  }
+  return html;
+}
+
+function draw(){
+  ctx.clearRect(0,0,W,H);
+  const isDark=window.matchMedia('(prefers-color-scheme:dark)').matches;
+  const clrGrid =isDark?'rgba(255,255,255,0.07)':'rgba(0,0,0,0.07)';
+  const clrAxis =isDark?'rgba(255,255,255,0.3)':'rgba(0,0,0,0.3)';
+  const clrTxt  =isDark?'rgba(255,255,255,0.5)':'rgba(0,0,0,0.45)';
+  const clrOrig =isDark?'rgba(255,255,255,0.15)':'rgba(0,0,0,0.1)';
+  const clrCurve='#378ADD';
+  const clrAsym ='#E24B4A';
+  const clrAnch ='#1D9E75';
+
+  ctx.font='11px system-ui,sans-serif';
+
+  ctx.strokeStyle=clrGrid;ctx.lineWidth=0.5;
+  for(let x=-12;x<=12;x++){ctx.beginPath();ctx.moveTo(toX(x),0);ctx.lineTo(toX(x),H);ctx.stroke();}
+  for(let y=-10;y<=10;y++){ctx.beginPath();ctx.moveTo(0,toY(y));ctx.lineTo(W,toY(y));ctx.stroke();}
+
+  ctx.strokeStyle=clrAxis;ctx.lineWidth=1.2;
+  ctx.beginPath();ctx.moveTo(0,oy);ctx.lineTo(W,oy);ctx.stroke();
+  ctx.beginPath();ctx.moveTo(ox,0);ctx.lineTo(ox,H);ctx.stroke();
+
+  ctx.fillStyle=clrTxt;ctx.textAlign='center';ctx.textBaseline='top';
+  for(let x=-6;x<=6;x++){if(x===0)continue;ctx.fillText(x,toX(x),oy+4);}
+  ctx.textAlign='right';ctx.textBaseline='middle';
+  for(let y=-5;y<=5;y++){if(y===0)continue;ctx.fillText(y,ox-5,toY(y));}
+
+  // ghost
+  ctx.strokeStyle=clrOrig;ctx.lineWidth=1.5;ctx.setLineDash([4,4]);
+  ctx.beginPath();let st=false;
+  for(let px=0;px<=W;px++){
+    const x=fromX(px),v=Math.pow(a,x);
+    if(!isFinite(v)||v>150||v<-150){st=false;continue;}
+    const py=toY(v);
+    st?ctx.lineTo(px,py):(ctx.moveTo(px,py),st=true);
+  }
+  ctx.stroke();ctx.setLineDash([]);
+
+  // 점근선
+  ctx.strokeStyle=clrAsym;ctx.lineWidth=1.5;ctx.setLineDash([6,4]);
+  ctx.beginPath();ctx.moveTo(0,toY(q));ctx.lineTo(W,toY(q));ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.font='11px system-ui,sans-serif';
+  ctx.fillStyle=clrAsym;ctx.textAlign='left';ctx.textBaseline='bottom';
+  const prefix='y = ';
+  ctx.fillText(prefix,6,toY(q)-3);
+  const tw=ctx.measureText(prefix).width;
+  const cx=6+tw+10,cy=toY(q)-10;
+  ctx.beginPath();ctx.arc(cx,cy,10,0,Math.PI*2);
+  ctx.fillStyle='#FFF4C2';ctx.fill();
+  ctx.strokeStyle='#E8C840';ctx.lineWidth=0.8;ctx.stroke();
+  ctx.fillStyle='#7A5C00';ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.fillText(fmt(q),cx,cy);
+
+  // 이동 곡선
+  ctx.strokeStyle=clrCurve;ctx.lineWidth=2.5;
+  ctx.beginPath();st=false;
+  for(let px=0;px<=W;px++){
+    const x=fromX(px),v=Math.pow(a,x-p)+q;
+    if(!isFinite(v)||v>300||v<-300){st=false;continue;}
+    const py=toY(v);
+    if(py<-H||py>2*H){st=false;continue;}
+    st?ctx.lineTo(px,py):(ctx.moveTo(px,py),st=true);
+  }
+  ctx.stroke();
+
+  // 기준점
+  [[p,1+q],[p+1,a+q]].forEach(([ax,ay])=>{
+    const px2=toX(ax),py2=toY(ay);
+    if(py2<-20||py2>H+20)return;
+    ctx.beginPath();ctx.arc(px2,py2,6,0,Math.PI*2);
+    ctx.fillStyle=clrAnch;ctx.fill();
+    ctx.strokeStyle=isDark?'#111':'white';ctx.lineWidth=1.5;ctx.stroke();
+    ctx.fillStyle=clrAnch;
+    ctx.font='11px system-ui,sans-serif';
+    ctx.textAlign=ax>=0?'right':'left';
+    ctx.textBaseline='bottom';
+    ctx.fillText('('+fmt(ax)+', '+fmt(ay)+')',px2+(ax>=0?-10:10),py2-8);
+  });
+}
+
+function update(){
+  a=parseFloat(document.getElementById('sl-a').value);
+  p=parseFloat(document.getElementById('sl-p').value);
+  q=parseFloat(document.getElementById('sl-q').value);
+  document.getElementById('vl-a').textContent=fmt(a);
+  document.getElementById('vl-p').textContent=fmt(p);
+  document.getElementById('vl-q').textContent=fmt(q);
+  document.getElementById('fn-label').innerHTML=buildFnHTML(a,p,q);
+  document.getElementById('i-asym-q').textContent=fmt(q);
+  document.getElementById('i-a1').textContent='  ('+fmt(p)+', '+fmt(1+q)+')  [지수 = 0]';
+  document.getElementById('i-a2').textContent='  ('+fmt(p+1)+', '+fmt(a+q)+')  [지수 = 1]';
+  const tag=document.getElementById('mono-tag');
+  if(a>1){tag.textContent='증가함수 ↗';tag.style.background='var(--color-background-success)';tag.style.color='var(--color-text-success)';}
+  else{tag.textContent='감소함수 ↘';tag.style.background='var(--color-background-danger)';tag.style.color='var(--color-text-danger)';}
+  draw();
+}
+
+function setMode(m){
+  const sl=document.getElementById('sl-a');
+  document.getElementById('btn-big').classList.toggle('active',m==='big');
+  document.getElementById('btn-small').classList.toggle('active',m==='small');
+  if(m==='big'){sl.min=1.1;sl.max=5;sl.step=0.1;sl.value=Math.max(1.1,parseFloat(sl.value));}
+  else{sl.min=0.1;sl.max=0.99;sl.step=0.01;sl.value=Math.min(0.99,parseFloat(sl.value));}
+  update();
+}
+
+['sl-a','sl-p','sl-q'].forEach(id=>document.getElementById(id).addEventListener('input',update));
+update();
+</script>
