@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>지수·로그함수 복습 퀴즈</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Malgun Gothic','맑은 고딕',system-ui,sans-serif;background:#1a1a2e;color:#e8e8f0;min-height:100vh;padding:20px;}
+
+  h1{text-align:center;font-size:28px;font-weight:700;color:#f0e6ff;margin:16px 0 8px;letter-spacing:-0.5px;}
+  .subtitle{text-align:center;font-size:17px;color:#a0a0c0;margin-bottom:24px;}
+
+  .progress-bar{background:#2a2a4a;border-radius:8px;height:8px;margin-bottom:24px;}
+  .progress-fill{background:#7c6af5;border-radius:8px;height:8px;transition:width 0.4s;}
+
+  .quiz-card{background:#22224a;border-radius:16px;padding:28px 32px;margin-bottom:20px;border:1.5px solid #3a3a6a;}
+  .q-header{display:flex;align-items:center;gap:12px;margin-bottom:18px;}
+  .q-num{background:#7c6af5;color:#fff;font-size:15px;font-weight:700;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .q-tag{font-size:13px;color:#9090c0;background:#2e2e5a;padding:3px 10px;border-radius:12px;}
+  .q-text{font-size:22px;font-weight:500;color:#f0f0ff;line-height:1.6;margin-bottom:20px;}
+  .q-text sub{font-size:14px;}
+  .q-text sup{font-size:14px;}
+
+  .options{display:grid;gap:10px;}
+  .opt-btn{background:#2e2e5a;border:1.5px solid #4a4a7a;border-radius:10px;padding:14px 20px;font-size:19px;color:#d8d8f0;cursor:pointer;text-align:left;transition:all 0.15s;font-family:inherit;}
+  .opt-btn:hover:not(:disabled){background:#3a3a6a;border-color:#7c6af5;}
+  .opt-btn.correct{background:#1a4a2a;border-color:#4ade80;color:#bbf7d0;}
+  .opt-btn.wrong{background:#4a1a1a;border-color:#f87171;color:#fecaca;}
+  .opt-btn.reveal{background:#2a4a1a;border-color:#86efac;color:#dcfce7;}
+  .opt-btn:disabled{cursor:default;}
+
+  .explanation{margin-top:14px;padding:14px 18px;background:#1e1e3e;border-left:4px solid #7c6af5;border-radius:0 8px 8px 0;font-size:17px;color:#c8c8f0;line-height:1.7;display:none;}
+  .explanation.show{display:block;}
+
+  .score-panel{background:#22224a;border-radius:16px;padding:32px;text-align:center;border:1.5px solid #3a3a6a;display:none;}
+  .score-panel.show{display:block;}
+  .score-big{font-size:56px;font-weight:700;color:#7c6af5;margin:8px 0;}
+  .score-label{font-size:20px;color:#a0a0c0;margin-bottom:24px;}
+  .score-msg{font-size:22px;color:#f0f0ff;margin-bottom:24px;}
+
+  .submit-wrap{text-align:center;margin-top:8px;}
+  .submit-btn{background:#7c6af5;color:#fff;border:none;border-radius:10px;padding:14px 36px;font-size:18px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .submit-btn:hover{background:#6a58e0;}
+
+
+
+  .section-label{font-size:15px;font-weight:700;color:#9090c0;letter-spacing:1px;margin:24px 0 12px;text-transform:uppercase;}
+
+  .retry-btn{background:#3a3a6a;color:#d8d8f0;border:1.5px solid #5a5a8a;border-radius:10px;padding:12px 28px;font-size:17px;cursor:pointer;font-family:inherit;margin-top:12px;}
+  .retry-btn:hover{background:#4a4a7a;}
+</style>
+</head>
+<body>
+
+<h1>지수·로그함수 복습 퀴즈</h1>
+<div class="subtitle">총 7문제 &nbsp;·&nbsp; 문제를 읽고 답을 골라봐요</div>
+
+<div class="progress-bar"><div class="progress-fill" id="prog" style="width:0%"></div></div>
+
+<div id="quiz-area"></div>
+
+<div class="submit-wrap" id="submit-wrap" style="display:none;">
+  <button class="submit-btn" onclick="showScore()">결과 보기</button>
+</div>
+
+<div class="score-panel" id="score-panel">
+  <div class="score-label">내 점수</div>
+  <div class="score-big" id="score-num"></div>
+  <div style="font-size:18px;color:#a0a0c0;margin-bottom:8px;">/ 7문제</div>
+  <div class="score-msg" id="score-msg"></div>
+  <button class="retry-btn" onclick="retry()">다시 풀기</button>
+</div>
+
+<script>
+const questions = [
+  // ── 지수함수 ──────────────────────────────────────────
+  {
+    section: "지수함수",
+    text: "y = 3<sup>x</sup> 의 그래프에 대한 설명으로 <b>옳지 않은</b> 것은?",
+    options: [
+      "점 (0, 1)을 지난다.",
+      "x축(y = 0)을 점근선으로 갖는다.",
+      "정의역은 양의 실수 전체이다.",
+      "x의 값이 증가하면 y의 값도 증가한다."
+    ],
+    answer: 2,
+    explanation: "y = 3<sup>x</sup> 의 정의역은 <b>실수 전체</b>입니다. 치역이 양의 실수 전체(y > 0)이고, 정의역은 제한이 없어요."
+  },
+  {
+    section: "지수함수",
+    text: "y = 2<sup>x − 1</sup> + 3 의 그래프의 점근선과 기준점 ① (지수 = 0인 점)은?",
+    options: [
+      "점근선 y = 3,  기준점 (1, 4)",
+      "점근선 y = 3,  기준점 (0, 4)",
+      "점근선 y = 1,  기준점 (1, 4)",
+      "점근선 y = 0,  기준점 (1, 3)"
+    ],
+    answer: 0,
+    explanation: "점근선은 y = <b>3</b> (= q 값).<br>지수 = 0 → x − 1 = 0 → x = 1, y = 2⁰ + 3 = <b>4</b>.<br>기준점 ① = (1, 4) ✓"
+  },
+  {
+    section: "지수함수",
+    text: "다음 두 수의 대소 관계로 옳은 것은?<br><br>2<sup>0.7</sup> &nbsp; 와 &nbsp; 2<sup>0.9</sup>",
+    options: [
+      "2<sup>0.7</sup> &gt; 2<sup>0.9</sup>",
+      "2<sup>0.7</sup> = 2<sup>0.9</sup>",
+      "2<sup>0.7</sup> &lt; 2<sup>0.9</sup>",
+      "비교할 수 없다."
+    ],
+    answer: 2,
+    explanation: "밑이 2 > 1 이므로 <b>증가함수</b>.<br>지수를 비교하면 0.7 < 0.9 이므로<br>2<sup>0.7</sup> <b>&lt;</b> 2<sup>0.9</sup>"
+  },
+  {
+    section: "지수함수",
+    text: "y = 2<sup>−x</sup> 에서 밑은 무엇인가?",
+    options: [
+      "2",
+      "−1",
+      "1/2",
+      "−2"
+    ],
+    answer: 2,
+    explanation: "2<sup>−x</sup> = (2<sup>−1</sup>)<sup>x</sup> = <b>(1/2)<sup>x</sup></b><br>밑이 1/2 인 지수함수입니다.<br>→ 0 &lt; 1/2 &lt; 1 이므로 <b>감소함수</b>예요."
+  },
+  // ── 로그함수 ──────────────────────────────────────────
+  {
+    section: "로그함수",
+    text: "y = log<sub>2</sub>(x + 3) 의 정의역은?",
+    options: [
+      "x &gt; 0",
+      "x &gt; −3",
+      "x &gt; 3",
+      "실수 전체"
+    ],
+    answer: 1,
+    explanation: "진수 조건: x + 3 &gt; 0<br>→ <b>x &gt; −3</b><br>점근선은 x = −3 (수직선)."
+  },
+  {
+    section: "로그함수",
+    text: "y = 2<sup>x</sup> 의 그래프와 y = log<sub>2</sub>x 의 그래프는 어느 직선에 대해 대칭인가?",
+    options: [
+      "x축 (y = 0)",
+      "y축 (x = 0)",
+      "직선 y = x",
+      "직선 y = 2x"
+    ],
+    answer: 2,
+    explanation: "지수함수와 로그함수는 서로 <b>역함수</b> 관계.<br>역함수 그래프는 원래 그래프를 <b>y = x</b> 에 대해 대칭이동한 것입니다."
+  },
+  {
+    section: "로그함수",
+    text: "log<sub>2</sub> 8 의 값은?",
+    options: [
+      "2",
+      "3",
+      "4",
+      "6"
+    ],
+    answer: 1,
+    explanation: "log<sub>2</sub> 8 = log<sub>2</sub> 2<sup>3</sup> = <b>3</b><br>2를 몇 제곱하면 8이 될까? → 2³ = 8 이므로 답은 3."
+  }
+];
+
+let answered = new Array(questions.length).fill(false);
+let correct   = new Array(questions.length).fill(false);
+let score = 0;
+
+function build(){
+  const area = document.getElementById('quiz-area');
+  area.innerHTML = '';
+  let lastSection = '';
+  questions.forEach((q, qi) => {
+    if(q.section !== lastSection){
+      const sl = document.createElement('div');
+      sl.className = 'section-label';
+      sl.textContent = '── ' + q.section;
+      area.appendChild(sl);
+      lastSection = q.section;
+    }
+    const card = document.createElement('div');
+    card.className = 'quiz-card';
+    card.id = 'card-' + qi;
+    card.innerHTML = `
+      <div class="q-header">
+        <div class="q-num">${qi+1}</div>
+        <div class="q-tag">${q.section}</div>
+      </div>
+      <div class="q-text">${q.text}</div>
+      <div class="options" id="opts-${qi}">
+        ${q.options.map((o,oi)=>`
+          <button class="opt-btn" onclick="choose(${qi},${oi})">
+            <span style="color:#7c6af5;font-weight:700;margin-right:10px;">${['①','②','③','④'][oi]}</span>${o}
+          </button>
+        `).join('')}
+      </div>
+      <div class="explanation" id="exp-${qi}">${q.explanation}</div>
+    `;
+    area.appendChild(card);
+  });
+}
+
+function choose(qi, oi){
+  if(answered[qi]) return;
+  answered[qi] = true;
+  const btns = document.querySelectorAll(`#opts-${qi} .opt-btn`);
+  btns.forEach((b,i) => {
+    b.disabled = true;
+    if(i === questions[qi].answer){
+      b.classList.add(oi === questions[qi].answer ? 'correct' : 'reveal');
+    } else if(i === oi){
+      b.classList.add('wrong');
+    }
+  });
+  if(oi === questions[qi].answer) correct[qi] = true;
+  document.getElementById('exp-'+qi).classList.add('show');
+
+  const done = answered.filter(Boolean).length;
+  document.getElementById('prog').style.width = (done/questions.length*100)+'%';
+  if(done === questions.length) document.getElementById('submit-wrap').style.display='block';
+}
+
+function showScore(){
+  score = correct.filter(Boolean).length;
+  document.getElementById('submit-wrap').style.display='none';
+  const panel = document.getElementById('score-panel');
+  panel.classList.add('show');
+  document.getElementById('score-num').textContent = score;
+  const msgs = ['한 번 더 복습해봐요! 💪','조금만 더 힘내봐요! 🔥','잘 하고 있어요! 👍','거의 다 맞혔어요! 🌟','완벽해요! 🎉'];
+  document.getElementById('score-msg').textContent = msgs[Math.min(Math.floor(score/questions.length*4), 4)];
+  panel.scrollIntoView({behavior:'smooth'});
+}
+
+function retry(){
+  answered = new Array(questions.length).fill(false);
+  correct  = new Array(questions.length).fill(false);
+  score = 0;
+  document.getElementById('prog').style.width = '0%';
+  document.getElementById('score-panel').classList.remove('show');
+  document.getElementById('submit-wrap').style.display='none';
+  build();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+build();
+</script>
+</body>
+</html>
