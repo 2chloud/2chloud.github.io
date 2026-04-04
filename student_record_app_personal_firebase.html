@@ -24,20 +24,22 @@ html,body{height:100%;font-family:'Apple SD Gothic Neo','Noto Sans KR','Malgun G
 .app{display:flex;height:100vh;overflow:hidden}
 
 /* ── SIDEBAR ── */
-.sb{width:220px;min-width:220px;background:#0F1C2E;display:flex;flex-direction:column;overflow:hidden}
+.sb{width:200px;min-width:200px;background:#0F1C2E;display:flex;flex-direction:column;overflow:hidden}
 .sb-head{padding:20px 18px 16px;border-bottom:1px solid rgba(255,255,255,0.1)}
 .sb-eyebrow{font-size:10px;color:#5B8DB8;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;font-weight:700}
 .sb-title{font-size:18px;font-weight:800;color:#FFFFFF;line-height:1.2}
 .sb-sub{font-size:12px;color:#5B8DB8;margin-top:3px;font-weight:500}
-.sb-scroll{flex:1;overflow-y:auto}
-.sb-sec{padding:14px 18px 6px;font-size:10px;color:#3D6080;font-weight:800;letter-spacing:2px;text-transform:uppercase}
+.sb-scroll-wrap{flex:1;position:relative;overflow:hidden;min-height:0}
+.sb-scroll{height:100%;overflow-y:auto;background:#0A1520}
+.sb-scroll-wrap::after{content:'';position:absolute;bottom:0;left:0;right:0;height:32px;background:linear-gradient(transparent,#0A1520);pointer-events:none;z-index:1}
+.sb-sec{padding:10px 15px 4px;font-size:10px;color:#3D6080;font-weight:800;letter-spacing:2px;text-transform:uppercase}
 .sb-btn{width:100%;display:flex;align-items:center;padding:0;background:transparent;border:none;border-left:3px solid transparent;cursor:pointer;font-family:inherit;transition:all .12s}
 .sb-btn:hover{background:rgba(255,255,255,0.05)}
 .sb-btn.active{background:rgba(59,130,246,0.18);border-left-color:#60A5FA}
-.sb-btn-inner{padding:11px 18px;flex:1}
-.sb-cls-name{font-size:16px;color:#E8F2FA;font-weight:700;display:flex;align-items:center;gap:8px}
+.sb-btn-inner{padding:7px 15px;flex:1}
+.sb-cls-name{font-size:13px;color:#E8F2FA;font-weight:700;display:flex;align-items:center;gap:6px}
 .sb-btn.active .sb-cls-name{color:#FFFFFF;font-weight:800}
-.sb-cls-meta{font-size:12px;color:#8AAFD0;margin-top:3px;font-weight:600}
+.sb-cls-meta{font-size:11px;color:#8AAFD0;font-weight:500}
 .sb-btn.active .sb-cls-meta{color:#7AAAD0;font-weight:600}
 .sb-badge{font-size:10px;padding:2px 8px;background:#1D4ED8;color:#BFDBFE;border-radius:5px;font-weight:800;letter-spacing:.3px}
 .sb-stat-item{width:100%;padding:8px 18px;display:flex;align-items:center;gap:9px;background:transparent;border:none;border-left:3px solid transparent;cursor:pointer;font-family:inherit;transition:all .12s}
@@ -45,7 +47,7 @@ html,body{height:100%;font-family:'Apple SD Gothic Neo','Noto Sans KR','Malgun G
 .sb-stat-item.active{background:rgba(59,130,246,0.18);border-left-color:#60A5FA}
 .sb-stat-name{font-size:16px;color:#C8DCF0;font-weight:600}
 .sb-stat-item.active .sb-stat-name{color:#FFFFFF;font-weight:800}
-.sb-settings{padding:12px 18px;border-top:1px solid rgba(255,255,255,0.07);background:none;border-bottom:none;border-right:none;border-left:none;cursor:pointer;font-family:inherit;color:#8AAFD0;font-size:13px;font-weight:700;text-align:left;display:flex;align-items:center;gap:8px;width:100%;transition:color .12s}
+.sb-settings{padding:9px 15px;border-top:1px solid rgba(255,255,255,0.07);background:none;border-bottom:none;border-right:none;border-left:none;cursor:pointer;font-family:inherit;color:#8AAFD0;font-size:12px;font-weight:700;text-align:left;display:flex;align-items:center;gap:7px;width:100%;transition:color .12s}
 .sb-settings:hover{color:#C8DCF0}
 
 /* ── MAIN ── */
@@ -357,6 +359,12 @@ input[type=date].has-val{background:var(--blue-l);border-color:#93C5FD}
 .login-btn:hover{background:#F9FAFB;border-color:#D1D5DB;box-shadow:0 2px 8px rgba(0,0,0,.08)}
 .login-btn svg{width:20px;height:20px;flex-shrink:0}
 .login-notice{font-size:11px;color:#9CA3AF;margin-top:20px;line-height:1.6}
+/* ── SB LINK BAR ── */
+.sb-link-bar{display:flex;border-bottom:1px solid rgba(255,255,255,0.07);background:#0F1C2E}
+.sb-link-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:7px 4px;background:none;border:none;cursor:pointer;color:#4A6080;font-size:10px;gap:3px;transition:color .12s;border-right:1px solid rgba(255,255,255,0.05)}
+.sb-link-btn:last-child{border-right:none}
+.sb-link-btn:hover{color:#8AAFD0;background:rgba(255,255,255,0.04)}
+.sb-link-icon{font-size:15px}
 /* ── MISC ── */
 .div{height:1px;background:var(--border);margin:12px 0}
 .type-dot{font-size:11px;white-space:nowrap}
@@ -660,7 +668,7 @@ function renderSidebar(){
     <div class="sb-title" onclick="selCls(APP.hrid||'c1')" style="cursor:pointer" title="홈으로">학생 활동기록</div>
     <div class="sb-sub">2026학년도 2학년</div>
   </div>`;
-  h+=`<div class="sb-scroll">
+  h+=`<div class="sb-scroll-wrap"><div class="sb-scroll">
     <div class="sb-sec">메뉴</div>
     <button class="sb-stat-item${UI.view==='search'?' active':''}" onclick="selSearch()">
       <span class="sb-stat-name">🔍 기록 검색</span>
@@ -676,7 +684,7 @@ function renderSidebar(){
     const sel2=hrCls2.id===UI.cid;
     const sc2=getStds(hrCls2.id).length;const rc2=rcnt(hrCls2.id);
     h+=`<button class="sb-btn sb-hr-item${sel2?' active':''}" onclick="selCls('${hrCls2.id}')">
-      <div class="sb-btn-inner">
+      <div class="sb-btn-inner" style="display:flex;align-items:center;justify-content:space-between">
         <div class="sb-cls-name">${hrCls2.name} <span class="sb-badge">담임</span></div>
         <div class="sb-cls-meta">${sc2}명${rc2?' · '+rc2+'건':''}</div>
       </div></button>`;
@@ -689,7 +697,7 @@ function renderSidebar(){
     const sel=c.id===UI.cid;
     const sc=getStds(c.id).length;const rc=rcnt(c.id);
     h+=`<button class="sb-btn${sel?' active':''}" onclick="selCls('${c.id}')">
-      <div class="sb-btn-inner">
+      <div class="sb-btn-inner" style="display:flex;align-items:center;justify-content:space-between">
         <div class="sb-cls-name">${c.name}</div>
         <div class="sb-cls-meta">${sc}명${rc?' · '+rc+'건':''}</div>
       </div></button>`;
@@ -707,7 +715,24 @@ function renderSidebar(){
         </div></button>`;
     });
   }
-  h+=`</div><button class="sb-settings" onclick="exportJSON()" style="color:#93C5FD;font-weight:700">💾&nbsp; 백업</button><button class="sb-settings" onclick="window.open('https://gen.eduptl.kr/','_blank')">🏫&nbsp; 업무포털</button><button class="sb-settings" onclick="window.open('https://kwangjug.riroschool.kr/','_blank')">📋&nbsp; 광주여고 리로스쿨</button><button class="sb-settings" onclick="window.open('https://notebooklm.google.com/notebook/019fe5d5-c730-4f13-b046-884488ea920b','_blank')">📓&nbsp; 2학년부 notebookLM</button><button class="sb-settings" onclick="openMd('settings')">⚙&nbsp; 데이터 관리</button>`;
+  h+=`</div></div>
+  <div class="sb-link-bar">
+    <button class="sb-link-btn" onclick="exportJSON()" title="백업">
+      <span class="sb-link-icon" style="color:#93C5FD">💾</span><span>백업</span>
+    </button>
+    <button class="sb-link-btn" onclick="window.open('https://gen.eduptl.kr/','_blank')" title="업무포털">
+      <span class="sb-link-icon">🏫</span><span>업무포털</span>
+    </button>
+    <button class="sb-link-btn" onclick="window.open('https://kwangjug.riroschool.kr/','_blank')" title="리로스쿨">
+      <span class="sb-link-icon">📋</span><span>리로스쿨</span>
+    </button>
+    <button class="sb-link-btn" onclick="window.open('https://notebooklm.google.com/notebook/019fe5d5-c730-4f13-b046-884488ea920b','_blank')" title="노트북LM">
+      <span class="sb-link-icon">📓</span><span>노트북LM</span>
+    </button>
+    <button class="sb-link-btn" onclick="openMd('settings')" title="데이터 관리">
+      <span class="sb-link-icon">⚙</span><span>설정</span>
+    </button>
+  </div>`;
   document.getElementById('sidebar').innerHTML=h;
 }
 
