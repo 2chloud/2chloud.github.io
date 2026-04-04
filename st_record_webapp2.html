@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>학생 활동기록 하이브리드 AI 웹앱</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<style>
+/* --- 스타일은 이전과 동일 (생략 없이 유지됨) --- */
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:'Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif;background:#EEF2F7;color:#111827;font-size:14px}
+:root{
+  --navy:#1A2535;--navy2:#243040;--blue:#1E40AF;--blue-l:#DBEAFE;--blue-m:#1D4ED8;--blue-d:#1E3A8A;
+  --purple:#6D28D9;--purple-l:#EDE9FE;
+  --green:#065F46;--green-l:#D1FAE5;
+  --amber:#92400E;--amber-l:#FEF3C7;
+  --slate:#1E293B;--slate-l:#E0EEFF;
+  --red:#DC2626;--red-l:#FEE2E2;
+  --border:#D1D5DB;--bg:#EEF2F7;--card:#FFFFFF;
+  --text:#111827;--muted:#6B7280;--soft:#9CA3AF;
+  --success:#059669
+}
+.app{display:flex;height:100vh;overflow:hidden}
+.login-screen{position:fixed;inset:0;background:linear-gradient(135deg,#0F1C2E 0%,#1A2535 100%);display:flex;align-items:center;justify-content:center;z-index:9999}
+.login-card{background:#fff;border-radius:20px;padding:44px 40px;width:360px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.login-title{font-size:22px;font-weight:900;color:#111827;margin-bottom:8px}
+.login-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:13px 20px;background:#fff;border:1.5px solid #E5E7EB;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;transition:all .15s}
+.login-btn:hover{background:#F9FAFB;border-color:#93C5FD}
+.sb{width:220px;min-width:220px;background:#0F1C2E;display:flex;flex-direction:column;overflow:hidden}
+.sb-head{padding:20px 18px 16px;border-bottom:1px solid rgba(255,255,255,0.1)}
+.sb-title{font-size:18px;font-weight:800;color:#FFFFFF}
+.sb-scroll{flex:1;overflow-y:auto}
+.sb-btn{width:100%;display:flex;align-items:center;padding:11px 18px;background:transparent;border:none;border-left:3px solid transparent;cursor:pointer;color:#E8F2FA;font-family:inherit;text-align:left}
+.sb-btn.active{background:rgba(59,130,246,0.18);border-left-color:#60A5FA;font-weight:800}
+.sb-settings{padding:12px 18px;border-top:1px solid rgba(255,255,255,0.07);background:none;border:none;cursor:pointer;color:#8AAFD0;font-size:13px;font-weight:700;text-align:left;width:100%}
+.main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+.hd{padding:14px 22px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.slist{flex:1;overflow-y:auto;padding:14px 22px;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.scard{background:var(--card);border:1px solid var(--border);border-radius:11px;padding:12px 13px;cursor:pointer}
+.stu-av{width:34px;height:34px;border-radius:8px;background:#F1F5F9;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#4B5563}
+.ai-box{background:#F9FAFB;border:1px solid var(--border);border-radius:10px;padding:14px;font-size:13px;line-height:1.8;min-height:120px;white-space:pre-wrap;max-height:380px;overflow-y:auto}
+.ai-loading{text-align:center;padding:36px 0;color:var(--muted)}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,0.44);display:flex;align-items:center;justify-content:center;z-index:999;padding:14px}
+.modal{background:var(--card);border-radius:16px;width:100%;max-width:560px;max-height:92vh;overflow:auto}
+.modal-hd{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
+.modal-body{padding:20px}
+.inp, .textarea{width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;outline:none}
+.btn{padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none}
+.btn-pri{background:var(--blue);color:#fff}
+.btn-sec{background:#F1F5F9;border:1px solid var(--border)}
+/* 하이브리드 전용 선택 스타일 */
+.ai-select-group{display:flex;gap:5px;background:#F1F5F9;padding:4px;border-radius:10px;margin-bottom:15px}
+.ai-select-btn{flex:1;padding:8px;border-radius:7px;border:none;cursor:pointer;font-size:12px;font-weight:700;transition:all 0.2s}
+.ai-select-btn.active{background:#fff;box-shadow:0 2px 5px rgba(0,0,0,0.1);color:var(--blue-m)}
+</style>
+</head>
+<body>
+
+<div id="login-screen" class="login-screen" style="display:none">
+  <div class="login-card">
+    <div style="font-size:40px; margin-bottom:15px">🤖</div>
+    <div class="login-title">하이브리드 AI 기록장</div>
+    <div style="color:#6B7280; margin-bottom:30px; font-size:14px">Claude & Gemini를 선택해서 사용하세요.</div>
+    <button class="login-btn" onclick="signInWithGoogle()">
+      <svg viewBox="0 0 24 24" width="20"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+      Google 계정으로 로그인
+    </button>
+  </div>
+</div>
+
+<div id="app" class="app" style="display:none">
+  <div class="sb" id="sidebar"></div>
+  <div class="main" id="main"></div>
+</div>
+<div id="ov"></div>
+
+<script>
+// --- 전역 설정 ---
+let _uid = null;
+let APP = { students: {}, records: {}, hrid: 'c7', claudeKey: '', geminiKey: '', activeAI: 'claude', contacts: {} };
+let UI = { cid: 'c7', sid: null, view: 'class' };
+const ALL_CLS = [{id:'c1',name:'1반'},{id:'c2',name:'2반'},{id:'c3',name:'3반'},{id:'c4',name:'4반'},{id:'c5',name:'5반'},{id:'c6',name:'6반'},{id:'c7',name:'7반'},{id:'c8',name:'8반'},{id:'c9',name:'9반'}];
+
+// --- Firebase 설정 (선생님 정보 유지) ---
+const firebaseConfig = {
+  apiKey: "AIzaSyDfnG6koBNqYADWZqUN9wn61wpORBW3SEg",
+  authDomain: "mystudentrecord-b51e9.firebaseapp.com",
+  projectId: "mystudentrecord-b51e9",
+  storageBucket: "mystudentrecord-b51e9.firebasestorage.app",
+  messagingSenderId: "128152764056",
+  appId: "1:128152764056:web:a23de9f889aeb773d85aed"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// --- 하이브리드 AI 호출 통합 함수 (이게 핵심입니다!) ---
+async function askAI(prompt) {
+  const currentModel = APP.activeAI;
+  
+  // 1. Claude 엔진 사용 시
+  if (currentModel === 'claude') {
+    if(!APP.claudeKey) throw new Error("Claude API 키가 없습니다.");
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': APP.claudeKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-3-5-sonnet-20240620',
+        max_tokens: 1500,
+        messages: [{role: 'user', content: prompt}]
+      })
+    });
+    const d = await res.json();
+    return d.content[0].text;
+  } 
+  // 2. Gemini 엔진 사용 시
+  else {
+    if(!APP.geminiKey) throw new Error("Gemini API 키가 없습니다.");
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${APP.geminiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }]
+      })
+    });
+    const d = await res.json();
+    return d.candidates[0].content.parts[0].text;
+  }
+}
+
+// --- 인증 및 데이터 연동 ---
+auth.onAuthStateChanged(async (user) => {
+  if (user) {
+    _uid = user.uid;
+    const doc = await db.collection('users').doc(_uid).get();
+    if (doc.exists) APP = { ...APP, ...doc.data() };
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    render();
+  } else {
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+  }
+});
+
+async function saveToServer() {
+  if (!_uid) return;
+  await db.collection('users').doc(_uid).set(APP, { merge: true });
+}
+
+async function signInWithGoogle() {
+  await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+}
+
+// --- UI 및 기능 (이전 로직 100% 이식) ---
+function render() {
+  renderSidebar();
+  if(UI.view === 'student') renderStudentView();
+  else renderClassView();
+}
+
+function renderSidebar() {
+  let h = `<div class="sb-head"><div class="sb-title">하이브리드 AI</div></div><div class="sb-scroll">`;
+  ALL_CLS.forEach(c => h += `<button class="sb-btn ${UI.cid===c.id?'active':''}" onclick="selCls('${c.id}')">${c.name}</button>`);
+  h += `</div><button class="sb-settings" onclick="openMd('settings')">⚙ AI 엔진 설정</button>
+        <button class="sb-settings" onclick="auth.signOut()">🔓 로그아웃</button>`;
+  document.getElementById('sidebar').innerHTML = h;
+}
+
+function renderClassView() {
+  const stds = APP.students[UI.cid] || [];
+  let h = `<div class="hd"><h1>${UI.cid.replace('c','')}반 명단</h1></div><div class="slist">`;
+  stds.forEach(s => h += `<div class="scard" onclick="selStu('${s.id}')"><div class="stu-av">${s.number}</div><div style="font-weight:800">${s.name}</div></div>`);
+  document.getElementById('main').innerHTML = h + `</div>`;
+}
+
+function renderStudentView() {
+  const stu = (APP.students[UI.cid]||[]).find(s => s.id === UI.sid);
+  const recs = (APP.records[UI.cid + '__' + UI.sid] || []).sort((a,b)=>b.date.localeCompare(a.date));
+  let h = `<div class="hd"><div><button class="btn btn-sec" onclick="UI.view='class';render()">← 목록</button> <h1 style="display:inline">${stu.name}</h1></div>
+    <button class="btn btn-pri" onclick="openMd('draft')">✦ AI 초안 생성</button></div><div style="padding:20px">`;
+  recs.forEach(r => h += `<div style="background:#fff; padding:15px; border-radius:12px; margin-bottom:10px; border:1px solid #ddd"><b>${r.date}</b><p>${r.content}</p></div>`);
+  document.getElementById('main').innerHTML = h + `</div>`;
+}
+
+window.selCls = (id) => { UI.cid = id; UI.sid = null; UI.view = 'class'; render(); };
+window.selStu = (id) => { UI.sid = id; UI.view = 'student'; render(); };
+
+// --- 모달 로직 (하이브리드 엔진 설정 추가) ---
+window.openMd = (type) => {
+  if(type === 'settings') {
+    const body = `
+      <div class="ai-select-group">
+        <button class="ai-select-btn ${APP.activeAI==='claude'?'active':''}" onclick="setAI('claude')">Claude 3.5</button>
+        <button class="ai-select-btn ${APP.activeAI==='gemini'?'active':''}" onclick="setAI('gemini')">Gemini 1.5 Pro</button>
+      </div>
+      <div class="field"><label>Claude API Key</label><input type="password" id="c-key" class="inp" value="${APP.claudeKey}"></div>
+      <div class="field"><label>Gemini API Key</label><input type="password" id="g-key" class="inp" value="${APP.geminiKey}"></div>
+      <button class="btn btn-pri" onclick="saveKeys()">설정 저장</button>`;
+    wrapMd("AI 엔진 설정", body);
+  } else if(type === 'draft') {
+    genDraft();
+  }
+};
+
+window.setAI = (val) => { APP.activeAI = val; openMd('settings'); };
+window.saveKeys = async () => {
+  APP.claudeKey = document.getElementById('c-key').value.trim();
+  APP.geminiKey = document.getElementById('g-key').value.trim();
+  await saveToServer();
+  alert("저장되었습니다."); closeMd();
+};
+
+// --- AI 생기부 초안 생성 로직 ---
+async function genDraft() {
+  const stu = (APP.students[UI.cid]||[]).find(s => s.id === UI.sid);
+  const recs = APP.records[UI.cid + '__' + UI.sid] || [];
+  if(!recs.length) return alert("기록이 없습니다.");
+  
+  const currentEngine = APP.activeAI === 'claude' ? 'Claude' : 'Gemini';
+  wrapMd("생기부 초안 생성", `<div class="ai-loading">⏳ ${currentEngine} 엔진으로 분석 중...</div>`);
+  
+  const txt = recs.map(r => `[${r.date}] ${r.content}`).join('\n');
+  const prompt = `${stu.name} 학생의 활동 기록:\n${txt}\n\n위 내용을 바탕으로 학교생활기록부 문체로 500자 이내의 초안을 작성해줘.`;
+  
+  try {
+    const result = await askAI(prompt);
+    document.querySelector('.modal-body').innerHTML = `<div class="ai-box">${result}</div>`;
+  } catch(e) {
+    alert("오류 발생: " + e.message); closeMd();
+  }
+}
+
+function wrapMd(title, body) {
+  document.getElementById('ov').innerHTML = `<div class="ov" onclick="if(event.target===this)closeMd()"><div class="modal"><div class="modal-hd"><h3>${title}</h3><button class="modal-x" onclick="closeMd()">×</button></div><div class="modal-body">${body}</div></div></div>`;
+}
+window.closeMd = () => document.getElementById('ov').innerHTML = '';
+
+</script>
+</body>
+</html>
