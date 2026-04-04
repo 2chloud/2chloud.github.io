@@ -30,8 +30,8 @@ html,body{height:100%;font-family:'Apple SD Gothic Neo','Noto Sans KR','Malgun G
 .sb-title{font-size:18px;font-weight:800;color:#FFFFFF;line-height:1.2}
 .sb-sub{font-size:12px;color:#5B8DB8;margin-top:3px;font-weight:500}
 .sb-scroll-wrap{flex:1;position:relative;overflow:hidden;min-height:0}
-.sb-scroll{height:100%;overflow-y:auto;background:#0A1520}
-.sb-scroll-wrap::after{content:'';position:absolute;bottom:0;left:0;right:0;height:32px;background:linear-gradient(transparent,#0A1520);pointer-events:none;z-index:1}
+.sb-scroll{height:100%;overflow-y:auto;background:#060E18}
+.sb-scroll-wrap::after{content:'';position:absolute;bottom:0;left:0;right:0;height:32px;background:linear-gradient(transparent,#060E18);pointer-events:none;z-index:1}
 .sb-sec{padding:10px 15px 4px;font-size:10px;color:#3D6080;font-weight:800;letter-spacing:2px;text-transform:uppercase}
 .sb-btn{width:100%;display:flex;align-items:center;padding:0;background:transparent;border:none;border-left:3px solid transparent;cursor:pointer;font-family:inherit;transition:all .12s}
 .sb-btn:hover{background:rgba(255,255,255,0.05)}
@@ -360,11 +360,17 @@ input[type=date].has-val{background:var(--blue-l);border-color:#93C5FD}
 .login-btn svg{width:20px;height:20px;flex-shrink:0}
 .login-notice{font-size:11px;color:#9CA3AF;margin-top:20px;line-height:1.6}
 /* ── SB LINK BAR ── */
-.sb-link-bar{display:flex;border-bottom:1px solid rgba(255,255,255,0.07);background:#0F1C2E}
-.sb-link-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:7px 4px;background:none;border:none;cursor:pointer;color:#4A6080;font-size:10px;gap:3px;transition:color .12s;border-right:1px solid rgba(255,255,255,0.05)}
-.sb-link-btn:last-child{border-right:none}
-.sb-link-btn:hover{color:#8AAFD0;background:rgba(255,255,255,0.04)}
-.sb-link-icon{font-size:15px}
+.sb-bottom{background:#1A2535;border-top:2px solid rgba(255,255,255,0.12)}
+.sb-bottom-actions{display:flex;gap:0}
+.sb-act-btn{flex:1;display:flex;align-items:center;justify-content:center;padding:9px 6px;background:none;border:none;border-right:1px solid rgba(255,255,255,0.07);cursor:pointer;color:#93A8C0;font-size:12px;font-weight:700;gap:5px;transition:all .12s}
+.sb-act-btn:last-child{border-right:none}
+.sb-act-btn:hover{background:rgba(255,255,255,0.07);color:#C8DCF0}
+.sb-links-grid{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid rgba(255,255,255,0.07)}
+.sb-link-btn{display:flex;align-items:center;gap:7px;padding:9px 12px;background:none;border:none;border-right:1px solid rgba(255,255,255,0.07);border-bottom:1px solid rgba(255,255,255,0.07);cursor:pointer;color:#7090A8;font-size:12px;font-weight:600;transition:all .12s;text-align:left;white-space:nowrap;overflow:hidden}
+.sb-link-btn:nth-child(2n){border-right:none}
+.sb-link-btn:nth-last-child(-n+2){border-bottom:none}
+.sb-link-btn:hover{background:rgba(255,255,255,0.06);color:#C8DCF0}
+.sb-link-icon{font-size:14px;flex-shrink:0}
 /* ── MISC ── */
 .div{height:1px;background:var(--border);margin:12px 0}
 .type-dot{font-size:11px;white-space:nowrap}
@@ -716,22 +722,29 @@ function renderSidebar(){
     });
   }
   h+=`</div></div>
-  <div class="sb-link-bar">
-    <button class="sb-link-btn" onclick="exportJSON()" title="백업">
-      <span class="sb-link-icon" style="color:#93C5FD">💾</span><span>백업</span>
-    </button>
-    <button class="sb-link-btn" onclick="window.open('https://gen.eduptl.kr/','_blank')" title="업무포털">
-      <span class="sb-link-icon">🏫</span><span>업무포털</span>
-    </button>
-    <button class="sb-link-btn" onclick="window.open('https://kwangjug.riroschool.kr/','_blank')" title="리로스쿨">
-      <span class="sb-link-icon">📋</span><span>리로스쿨</span>
-    </button>
-    <button class="sb-link-btn" onclick="window.open('https://notebooklm.google.com/notebook/019fe5d5-c730-4f13-b046-884488ea920b','_blank')" title="노트북LM">
-      <span class="sb-link-icon">📓</span><span>노트북LM</span>
-    </button>
-    <button class="sb-link-btn" onclick="openMd('settings')" title="데이터 관리">
-      <span class="sb-link-icon">⚙</span><span>설정</span>
-    </button>
+  <div class="sb-bottom">
+    <div class="sb-act-btn-row" style="display:flex;border-bottom:1px solid rgba(255,255,255,0.07)">
+      <button class="sb-act-btn" onclick="exportJSON()" style="flex:1;border-right:1px solid rgba(255,255,255,0.07)">
+        <span style="color:#93C5FD">💾</span> 백업
+      </button>
+      <button class="sb-act-btn" onclick="openMd('settings')" style="flex:1">
+        <span>⚙</span> 설정
+      </button>
+    </div>
+    <div class="sb-links-grid">
+      <button class="sb-link-btn" onclick="window.open('https://gen.eduptl.kr/','_blank')">
+        <span class="sb-link-icon">🏫</span>업무포털
+      </button>
+      <button class="sb-link-btn" onclick="window.open('https://kwangjug.riroschool.kr/','_blank')">
+        <span class="sb-link-icon">📋</span>리로스쿨
+      </button>
+      <button class="sb-link-btn" onclick="window.open('https://notebooklm.google.com/notebook/019fe5d5-c730-4f13-b046-884488ea920b','_blank')">
+        <span class="sb-link-icon">📓</span>노트북LM
+      </button>
+      <button class="sb-link-btn" onclick="window.open('http://kwangju-g.gen.hs.kr/main/main.php','_blank')">
+        <span class="sb-link-icon">🏢</span>학교 홈페이지
+      </button>
+    </div>
   </div>`;
   document.getElementById('sidebar').innerHTML=h;
 }
