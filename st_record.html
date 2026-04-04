@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>학생 활동기록 웹앱 (Firebase)</title>
+<title>학생 활동기록 웹앱 (Cloud)</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-/* --- 기존 스타일 전체 적용 --- */
+/* --- [1] 원래 파일의 스타일 (CSS) 그대로 복구 --- */
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{height:100%;font-family:'Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif;background:#EEF2F7;color:#111827;font-size:14px}
 :root{
@@ -22,51 +22,51 @@ html,body{height:100%;font-family:'Apple SD Gothic Neo','Noto Sans KR','Malgun G
 }
 .app{display:flex;height:100vh;overflow:hidden}
 
-/* 로그인 화면 스타일 */
-.login-screen{position:fixed;inset:0;background:#0F1C2E;display:flex;align-items:center;justify-content:center;z-index:1000}
-.login-box{background:#fff;padding:40px;border-radius:24px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,0.3);width:360px}
-.google-btn{width:100%;background:#fff;border:1px solid #D1D5DB;padding:12px;border-radius:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;transition:all 0.2s}
-.google-btn:hover{background:#F9FAFB;border-color:#93C5FD}
+/* 로그인 화면 전용 스타일 */
+.login-screen{position:fixed;inset:0;background:var(--navy);display:flex;align-items:center;justify-content:center;z-index:1000}
+.login-box{background:#fff;padding:40px;border-radius:24px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);width:380px}
+.google-btn{width:100%;background:#fff;border:1px solid var(--border);padding:14px;border-radius:12px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:12px;cursor:pointer;transition:all 0.2s;font-size:15px}
+.google-btn:hover{background:#f8fafc; border-color:var(--blue-m)}
 
-/* (기본 레이아웃 및 컴포넌트 스타일 유지 - 기존 코드와 동일) */
+/* --- 사이드바, 헤더, 카드 등 원래 디자인 소스 --- */
 .sb{width:220px;min-width:220px;background:#0F1C2E;display:flex;flex-direction:column;overflow:hidden}
 .sb-head{padding:20px 18px 16px;border-bottom:1px solid rgba(255,255,255,0.1)}
-.sb-title{font-size:18px;font-weight:800;color:#FFFFFF}
+.sb-title{font-size:18px;font-weight:800;color:#FFFFFF;line-height:1.2}
 .sb-scroll{flex:1;overflow-y:auto}
 .sb-sec{padding:14px 18px 6px;font-size:10px;color:#3D6080;font-weight:800;letter-spacing:2px;text-transform:uppercase}
-.sb-btn{width:100%;display:flex;align-items:center;padding:11px 18px;background:transparent;border:none;border-left:3px solid transparent;cursor:pointer;color:#E8F2FA;font-family:inherit}
+.sb-btn{width:100%;display:flex;align-items:center;padding:11px 18px;background:transparent;border:none;border-left:3px solid transparent;cursor:pointer;color:#E8F2FA;font-family:inherit;text-align:left}
 .sb-btn.active{background:rgba(59,130,246,0.18);border-left-color:#60A5FA;font-weight:800}
 .sb-settings{padding:12px 18px;border-top:1px solid rgba(255,255,255,0.07);background:none;border:none;cursor:pointer;color:#8AAFD0;font-size:13px;font-weight:700;text-align:left;width:100%}
 
 .main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
 .hd{padding:14px 22px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.hd-left h1{font-size:19px;font-weight:800;color:var(--text)}
 .fb{padding:8px 22px;background:#F8FAFC;border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:center;flex-shrink:0}
-.chip{padding:3px 12px;border-radius:999px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:#fff}
-.chip.a-전체, .chip.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+.chip{padding:3px 12px;border-radius:999px;font-size:12px;font-family:inherit;cursor:pointer;border:1px solid var(--border);background:#fff;color:var(--muted)}
+.chip.active{background:var(--navy);color:#fff;border-color:var(--navy)}
 
-.slist{flex:1;overflow-y:auto;padding:14px 22px;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
-.scard{background:var(--card);border:1px solid var(--border);border-radius:11px;padding:12px 13px;cursor:pointer}
-.bdg{display:inline-block;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:700}
-.stu-av{width:38px;height:38px;border-radius:9px;background:var(--navy);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800}
+.slist{flex:1;overflow-y:auto;padding:14px 22px;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.scard{background:var(--card);border:1px solid var(--border);border-radius:11px;padding:12px 13px;cursor:pointer;transition:all 0.1s}
+.scard:hover{border-color:var(--blue-m);box-shadow:0 4px 12px rgba(0,0,0,0.05)}
+.stu-av{width:34px;height:34px;border-radius:8px;background:#F1F5F9;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#4B5563;flex-shrink:0}
 
-/* 모달 관련 */
+/* 모달 디자인 */
 .ov{position:fixed;inset:0;background:rgba(0,0,0,0.44);display:flex;align-items:center;justify-content:center;z-index:999;padding:14px}
-.modal{background:var(--card);border-radius:16px;width:100%;max-width:560px;max-height:92vh;overflow:auto}
+.modal{background:var(--card);border-radius:16px;width:100%;max-width:500px;max-height:90vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,0.22)}
 .modal-hd{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
 .modal-body{padding:20px}
-.field{margin-bottom:13px}
-.inp, .textarea{width:100%;padding:8px 11px;border:1px solid #D1D5DB;border-radius:8px}
-.btn{padding:6px 13px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none}
+.inp, .textarea{width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-family:inherit;outline:none}
+.btn{padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;transition:opacity 0.1s}
 .btn-pri{background:var(--blue);color:#fff}
-.btn-sec{background:#F1F5F9;border:1px solid #D1D5DB}
+.btn-sec{background:#F1F5F9;border:1px solid var(--border)}
 </style>
 </head>
 <body>
 
 <div id="login-screen" class="login-screen">
   <div class="login-box">
-    <h2 style="margin-bottom:8px">학생 기록 관리 시스템</h2>
-    <p style="color:#6B7280;margin-bottom:24px;font-size:14px">본인 계정으로 동기화하려면 로그인하세요.</p>
+    <h2 style="margin-bottom:10px">학생 활동기록 웹앱</h2>
+    <p style="color:var(--muted);margin-bottom:28px;font-size:14px">데이터 동기화를 위해 로그인하세요.</p>
     <button class="google-btn" onclick="loginWithGoogle()">
       <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="18">
       Google 계정으로 시작하기
@@ -81,11 +81,11 @@ html,body{height:100%;font-family:'Apple SD Gothic Neo','Noto Sans KR','Malgun G
 <div id="ov"></div>
 
 <script type="module">
-// --- Firebase SDK 및 설정 ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+// [중요] 선생님의 Firebase 설정값
 const firebaseConfig = {
   apiKey: "AIzaSyDfnG6koBNqYADWZqUN9wn61wpORBW3SEg",
   authDomain: "mystudentrecord-b51e9.firebaseapp.com",
@@ -100,17 +100,17 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
-// --- 전역 변수 ---
-window.APP = { classes: [], students: {}, records: {}, hrid: '', contacts: {} };
-window.UI = { cid: 'c1', sid: null, view: 'class', ft: '전체', fd: '', sq: '', fdOpen: false };
+// 상태 관리용 전역 객체
+window.APP = { students: {}, records: {}, hrid: '', contacts: {} };
+window.UI = { cid: 'c1', sid: null, view: 'class' };
 
-const ALL_CLS_DATA = [
-  {id:'c1',name:'1반'}, {id:'c2',name:'2반'}, {id:'c3',name:'3반'},
-  {id:'c4',name:'4반'}, {id:'c5',name:'5반'}, {id:'c6',name:'6반'},
-  {id:'c7',name:'7반'}, {id:'c8',name:'8반'}, {id:'c9',name:'9반'}
+const ALL_CLS = [
+  {id:'c1',name:'1반'},{id:'c2',name:'2반'},{id:'c3',name:'3반'},
+  {id:'c4',name:'4반'},{id:'c5',name:'5반'},{id:'c6',name:'6반'},
+  {id:'c7',name:'7반'},{id:'c8',name:'8반'},{id:'c9',name:'9반'}
 ];
 
-// --- 핵심 로직: 로그인 및 데이터 동기화 ---
+// 로그인 처리
 onAuthStateChanged(auth, async (user) => {
   if (user) {
     document.getElementById('login-screen').style.display = 'none';
@@ -123,9 +123,12 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-window.loginWithGoogle = () => signInWithPopup(auth, provider);
+window.loginWithGoogle = () => signInWithPopup(auth, provider).catch(e => {
+  if(e.code === 'auth/unauthorized-domain') alert("에러: Firebase 설정에서 현재 도메인을 '승인된 도메인'에 추가해야 합니다.");
+});
 window.logout = () => confirm("로그아웃 하시겠습니까?") && signOut(auth).then(()=>location.reload());
 
+// 서버 저장 및 불러오기
 async function saveToServer() {
   const user = auth.currentUser;
   if (!user) return;
@@ -143,14 +146,10 @@ async function loadFromServer() {
   if (docSnap.exists()) {
     const d = docSnap.data();
     APP = { ...APP, ...d };
-  } else {
-    // 초기 데이터가 없는 경우 기초 세팅
-    APP.classes = ALL_CLS_DATA;
-    // (선택사항) SEED 데이터를 여기에 넣어 초기화 가능
   }
 }
 
-// --- UI 렌더링 함수들 (기존 로직 이식) ---
+// UI 렌더링 함수들
 window.render = () => {
   renderSidebar();
   if(UI.view === 'student') renderStudentView();
@@ -158,12 +157,14 @@ window.render = () => {
 };
 
 function renderSidebar() {
-  let h = `<div class="sb-head"><div class="sb-title">기록 웹앱</div></div><div class="sb-scroll">`;
-  ALL_CLS_DATA.forEach(c => {
+  let h = `<div class="sb-head"><div class="sb-title">학생 활동기록</div></div><div class="sb-scroll">`;
+  h += `<div class="sb-sec">전체 반</div>`;
+  ALL_CLS.forEach(c => {
     h += `<button class="sb-btn ${UI.cid===c.id?'active':''}" onclick="selCls('${c.id}')">${c.name}</button>`;
   });
-  h += `</div><button class="sb-settings" onclick="logout()">🔓 로그아웃</button>
-        <button class="sb-settings" onclick="openMd('import')">📥 데이터 업로드(이사)</button>`;
+  h += `</div>
+    <button class="sb-settings" onclick="openMd('import')">📥 기존 데이터(JSON) 업로드</button>
+    <button class="sb-settings" onclick="logout()" style="color:var(--red)">🔓 로그아웃</button>`;
   document.getElementById('sidebar').innerHTML = h;
 }
 
@@ -172,13 +173,13 @@ window.selStu = (id) => { UI.sid = id; UI.view = 'student'; render(); };
 
 function renderClassView() {
   const stds = APP.students[UI.cid] || [];
-  let h = `<div class="hd"><h1>${UI.cid.replace('c','')}반 목록</h1></div><div class="slist">`;
-  if(!stds.length) h += `<div style="padding:40px; text-align:center">학생 데이터가 없습니다.</div>`;
+  let h = `<div class="hd"><h1>${UI.cid.replace('c','')}반 명단</h1></div><div class="slist">`;
+  if(!stds.length) h += `<div class="empty" style="grid-column:1/-1; padding:100px 0; text-align:center; color:var(--soft)">데이터가 없습니다.</div>`;
   stds.forEach(s => {
     h += `<div class="scard" onclick="selStu('${s.id}')">
-            <div style="display:flex; align-items:center; gap:10px">
+            <div style="display:flex; align-items:center; gap:12px">
               <div class="stu-av">${s.number}</div>
-              <div style="font-weight:700">${s.name}</div>
+              <div style="font-weight:800; font-size:15px">${s.name}</div>
             </div>
           </div>`;
   });
@@ -189,65 +190,82 @@ function renderClassView() {
 function renderStudentView() {
   const stu = (APP.students[UI.cid]||[]).find(s => s.id === UI.sid);
   const recs = APP.records[UI.cid + '__' + UI.sid] || [];
-  let h = `<div class="hd"><div><button onclick="selCls('${UI.cid}')">← 목록</button> <h1>${stu.name}</h1></div>
-           <button class="btn btn-pri" onclick="openMd('add')">+ 기록 추가</button></div>
-           <div style="padding:20px">`;
+  let h = `<div class="hd">
+    <div style="display:flex; align-items:center; gap:15px">
+      <button class="btn btn-sec" onclick="selCls('${UI.cid}')">← 목록</button>
+      <h1 style="font-size:22px">${stu.name} <span style="font-size:14px; font-weight:400; color:var(--soft)">${stu.number}번</span></h1>
+    </div>
+    <button class="btn btn-pri" onclick="openMd('add')">+ 기록 추가</button>
+  </div>
+  <div style="padding:22px; flex:1; overflow-y:auto">`;
+  if(!recs.length) h += `<div style="text-align:center; color:var(--soft); padding:100px 0">기록된 활동이 없습니다.</div>`;
   recs.forEach(r => {
-    h += `<div style="background:#fff; padding:15px; border-radius:10px; margin-bottom:10px; border:1px solid #ddd">
-            <div style="font-size:11px; color:#888">${r.date} | ${r.type}</div>
-            <div style="margin-top:5px">${r.content}</div>
+    h += `<div style="background:#fff; padding:16px; border-radius:12px; margin-bottom:12px; border:1px solid var(--border); line-height:1.6">
+            <div style="font-size:11px; font-weight:800; color:var(--blue-m); margin-bottom:6px">${r.date} · ${r.type}</div>
+            <div style="color:var(--text); font-size:14px">${r.content}</div>
           </div>`;
   });
   h += `</div>`;
   document.getElementById('main').innerHTML = h;
 }
 
-// --- 기록 추가 및 모달 로직 ---
+// 모달 & 데이터 이사
 window.openMd = (type) => {
   if(type === 'add') {
     const body = `
-      <div class="field"><label>날짜</label><input type="date" id="new-date" class="inp" value="${new Date().toISOString().slice(0,10)}"></div>
-      <div class="field"><label>유형</label><select id="new-type" class="inp"><option>자율</option><option>진로</option><option>상담메모</option></select></div>
-      <div class="field"><label>내용</label><textarea id="new-content" class="textarea" rows="4"></textarea></div>
-      <button class="btn btn-pri" onclick="addRecord()">저장하기</button>
+      <div class="field"><label style="font-size:11px; font-weight:700; color:var(--muted)">날짜</label><input type="date" id="new-date" class="inp" value="${new Date().toISOString().slice(0,10)}"></div>
+      <div class="field"><label style="font-size:11px; font-weight:700; color:var(--muted)">유형</label><select id="new-type" class="inp"><option>자율</option><option>진로</option><option>상담메모</option><option>행동특성</option></select></div>
+      <div class="field"><label style="font-size:11px; font-weight:700; color:var(--muted)">내용</label><textarea id="new-content" class="textarea" rows="5" placeholder="기록할 내용을 입력하세요"></textarea></div>
+      <div style="display:flex; justify-content:flex-end; gap:8px"><button class="btn btn-sec" onclick="closeMd()">취소</button><button class="btn btn-pri" onclick="addRecord()">저장하기</button></div>
     `;
     wrapMd("기록 추가", body);
   } else if(type === 'import') {
-    const body = `<p>기존 JSON 파일을 선택하세요.</p><input type="file" onchange="importJson(this)">`;
-    wrapMd("기존 데이터 이사", body);
+    const body = `<p style="margin-bottom:15px; font-size:13px">기존 로컬 버전에서 백업한 JSON 파일을 업로드하면 서버로 동기화됩니다.</p>
+                  <input type="file" onchange="importJson(this)" style="font-size:13px">`;
+    wrapMd("기존 데이터 이사하기", body);
   }
 };
 
 window.addRecord = async () => {
-  const date = document.getElementById('new-date').value;
-  const type = document.getElementById('new-type').value;
   const content = document.getElementById('new-content').value;
+  if(!content.trim()) return alert("내용을 입력하세요");
   const key = UI.cid + '__' + UI.sid;
   if(!APP.records[key]) APP.records[key] = [];
-  APP.records[key].unshift({ id: Date.now().toString(), date, type, content });
+  APP.records[key].unshift({
+    id: Date.now().toString(),
+    date: document.getElementById('new-date').value,
+    type: document.getElementById('new-type').value,
+    content: content
+  });
   await saveToServer();
-  closeMd();
-  render();
+  closeMd(); render();
 };
 
 window.importJson = (input) => {
   const reader = new FileReader();
   reader.onload = async (e) => {
-    const data = JSON.parse(e.target.result);
-    APP.students = data.students || {};
-    APP.records = data.records || {};
-    await saveToServer();
-    alert("데이터 이사가 완료되었습니다!");
-    location.reload();
+    try {
+      const data = JSON.parse(e.target.result);
+      APP.students = data.students || {};
+      APP.records = data.records || {};
+      await saveToServer();
+      alert("서버 동기화 완료!");
+      location.reload();
+    } catch(err) { alert("잘못된 파일 형식입니다."); }
   };
   reader.readAsText(input.files[0]);
 };
 
 function wrapMd(title, body) {
-  document.getElementById('ov').innerHTML = `<div class="ov" onclick="if(event.target===this)closeMd()"><div class="modal"><div class="modal-hd"><h3>${title}</h3></div><div class="modal-body">${body}</div></div></div>`;
+  document.getElementById('ov').innerHTML = `
+    <div class="ov" onclick="if(event.target===this)closeMd()">
+      <div class="modal">
+        <div class="modal-hd"><h3 style="font-size:16px">${title}</h3><button onclick="closeMd()" style="background:none; border:none; cursor:pointer; font-size:20px; color:var(--soft)">×</button></div>
+        <div class="modal-body">${body}</div>
+      </div>
+    </div>`;
 }
 window.closeMd = () => document.getElementById('ov').innerHTML = '';
-
 </script>
 </body>
 </html>
