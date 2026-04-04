@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>학생 활동기록 AI 웹앱</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<style>
+/* ── 기존 스타일 유지 ── */
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:'Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif;background:#EEF2F7;color:#111827;font-size:14px}
+:root{
+  --navy:#1A2535;--navy2:#243040;--blue:#1E40AF;--blue-l:#DBEAFE;--blue-m:#1D4ED8;--blue-d:#1E3A8A;
+  --purple:#6D28D9;--purple-l:#EDE9FE;
+  --green:#065F46;--green-l:#D1FAE5;
+  --amber:#92400E;--amber-l:#FEF3C7;
+  --slate:#1E293B;--slate-l:#E0EEFF;
+  --red:#DC2626;--red-l:#FEE2E2;
+  --border:#D1D5DB;--bg:#EEF2F7;--card:#FFFFFF;
+  --text:#111827;--muted:#6B7280;--soft:#9CA3AF;
+  --success:#059669
+}
+.app{display:flex;height:100vh;overflow:hidden}
+
+/* ── SIDEBAR ── */
+.sb{width:220px;min-width:220px;background:#0F1C2E;display:flex;flex-direction:column;overflow:hidden}
+.sb-head{padding:20px 18px 16px;border-bottom:1px solid rgba(255,255,255,0.1)}
+.sb-title{font-size:18px;font-weight:800;color:#FFFFFF;line-height:1.2}
+.sb-sub{font-size:12px;color:#5B8DB8;margin-top:3px;font-weight:500}
+.sb-scroll{flex:1;overflow-y:auto}
+.sb-sec{padding:14px 18px 6px;font-size:10px;color:#3D6080;font-weight:800;letter-spacing:2px;text-transform:uppercase}
+.sb-btn{width:100%;display:flex;align-items:center;padding:0;background:transparent;border:none;border-left:3px solid transparent;cursor:pointer;font-family:inherit;transition:all .12s}
+.sb-btn:hover{background:rgba(255,255,255,0.05)}
+.sb-btn.active{background:rgba(59,130,246,0.18);border-left-color:#60A5FA}
+.sb-btn-inner{padding:11px 18px;flex:1}
+.sb-cls-name{font-size:16px;color:#E8F2FA;font-weight:700;display:flex;align-items:center;gap:8px}
+.sb-settings{padding:12px 18px;border-top:1px solid rgba(255,255,255,0.07);background:none;border:none;cursor:pointer;font-family:inherit;color:#8AAFD0;font-size:13px;font-weight:700;text-align:left;display:flex;align-items:center;gap:8px;width:100%}
+
+/* ── MAIN ── */
+.main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+.hd{padding:14px 22px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;flex-shrink:0}
+.fb{padding:8px 22px;background:#F8FAFC;border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:center;flex-wrap:wrap;flex-shrink:0;min-height:44px}
+.chip{padding:3px 12px;border-radius:999px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:#fff;color:var(--muted)}
+.chip.a-전체{background:var(--navy);color:#fff}
+
+/* ── LOGIN SCREEN ── */
+.login-screen{position:fixed;inset:0;background:linear-gradient(135deg,#0F1C2E 0%,#1A2535 100%);display:flex;align-items:center;justify-content:center;z-index:9999}
+.login-card{background:#fff;border-radius:20px;padding:44px 40px;width:360px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.login-logo{font-size:36px;margin-bottom:12px}
+.login-title{font-size:22px;font-weight:900;color:#111827;margin-bottom:6px}
+.login-sub{font-size:13px;color:#6B7280;margin-bottom:32px;line-height:1.6}
+.login-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:13px 20px;background:#fff;border:1.5px solid #E5E7EB;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;color:#374151;transition:all .15s}
+.login-btn:hover{background:#F9FAFB;border-color:#D1D5DB;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.login-notice{font-size:11px;color:#9CA3AF;margin-top:20px}
+
+/* ── STUDENT LIST & CARDS ── */
+.slist{flex:1;overflow-y:auto;padding:14px 22px;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.scard{background:var(--card);border:1px solid var(--border);border-radius:11px;padding:12px 13px;cursor:pointer}
+.stu-av{width:38px;height:38px;border-radius:9px;background:var(--navy);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff}
+.bdg{display:inline-block;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:700}
+.bdg-학종분석{color:#6D28D9;background:#F5F3FF;border:1px solid #DDD6FE}
+
+/* ── AI BOX ── */
+.ai-box{background:#F9FAFB;border:1px solid var(--border);border-radius:10px;padding:14px;font-size:13px;line-height:1.8;color:var(--text);min-height:120px;white-space:pre-wrap;max-height:380px;overflow-y:auto}
+.ai-loading{text-align:center;padding:36px 0;color:var(--muted)}
+.ana-opt{border:1px solid var(--border);border-radius:11px;padding:13px;cursor:pointer;background:#F9FAFB;transition:all .12s;margin-bottom:9px}
+.ana-opt:hover{border-color:#93C5FD;background:#EFF6FF}
+
+/* ── MODAL ── */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,0.44);display:flex;align-items:center;justify-content:center;z-index:999;padding:14px}
+.modal{background:var(--card);border-radius:16px;width:100%;max-width:560px;max-height:92vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.22)}
+.modal-hd{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
+.modal-x{background:none;border:none;cursor:pointer;font-size:21px;color:var(--soft)}
+.modal-body{padding:20px}
+.field{margin-bottom:13px}
+.inp, .textarea{width:100%;padding:8px 11px;border:1px solid #D1D5DB;border-radius:8px;font-size:13px}
+.btn{padding:6px 13px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none}
+.btn-pri{background:var(--blue);color:#fff}
+.btn-sec{background:#F1F5F9;border:1px solid #D1D5DB}
+</style>
+</head>
+<body>
+
+  <div id="login-screen" class="login-screen" style="display:none">
+    <div class="login-card">
+      <div class="login-logo">🎓</div>
+      <div class="login-title">학생 기록 관리 시스템 (AI)</div>
+      <div class="login-sub">구글 계정으로 로그인하여<br>나만의 AI 비서와 데이터를 동기화하세요.</div>
+      <button class="login-btn" onclick="signInWithGoogle()">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+        Google 계정으로 로그인
+      </button>
+      <div class="login-notice">개인 계정(@gmail.com) 사용을 권장합니다.</div>
+    </div>
+  </div>
+
+  <div id="app" class="app" style="display:none">
+    <div class="sb" id="sidebar"></div>
+    <div class="main" id="main"></div>
+  </div>
+
+  <div id="ov"></div>
+
+<script>
+// ────────────────────── DATA ──────────────────────
+const SEED={"1반":[{"number":"1","name":"강다예"},{"number":"2","name":"강솔빈"}],"2반":[{"number":"1","name":"고사랑"}]}; // 명단 데이터 (생략함)
+const TIMETABLE={"7":{"1":{"n":"강유주","s":{"1":{"월":{"s":"영어","t":"이정민","r":"207"}}}}}}; // 시간표 데이터 (생략함)
+
+let _uid=null;
+let APP={classes:[], students:{}, records:{}, hrid:'c7', apiKey:'', contacts:{}};
+let UI={cid:'c7', sid:null, view:'class', ft:'전체', fd:'', sq:'', modal:null};
+let DR={tab:'세특', text:'', loading:false};
+let ANADATA=null;
+
+// ── Firebase 초기화 ──────────────────────────────────────────
+const firebaseConfig={
+  apiKey:"AIzaSyDfnG6koBNqYADWZqUN9wn61wpORBW3SEg",
+  authDomain:"mystudentrecord-b51e9.firebaseapp.com",
+  projectId:"mystudentrecord-b51e9",
+  storageBucket:"mystudentrecord-b51e9.firebasestorage.app",
+  messagingSenderId:"128152764056",
+  appId:"1:128152764056:web:a23de9f889aeb773d85aed"
+};
+firebase.initializeApp(firebaseConfig);
+const auth=firebase.auth();
+const db=firebase.firestore();
+
+// ── 데이터 관리 함수 ──────────────────────────────────────────
+async function saveData(){
+  if(!_uid) return;
+  await db.collection('users').doc(_uid).set({
+    students:APP.students, records:APP.records, hrid:APP.hrid,
+    apiKey:APP.apiKey, contacts:APP.contacts
+  },{merge:true});
+}
+
+async function loadData(){
+  if(!_uid) return;
+  const doc = await db.collection('users').doc(_uid).get();
+  if(doc.exists){
+    const d=doc.data();
+    APP.students=d.students||{}; APP.records=d.records||{};
+    APP.hrid=d.hrid||'c7'; APP.apiKey=d.apiKey||'';
+  }
+}
+
+// ── 인증 처리 ──────────────────────────────────────────────────
+async function signInWithGoogle(){
+  const provider=new firebase.auth.GoogleAuthProvider();
+  try{await auth.signInWithPopup(provider);}
+  catch(e){alert('로그인 실패: '+e.message);}
+}
+
+auth.onAuthStateChanged(async(user)=>{
+  const loginScreen=document.getElementById('login-screen');
+  const appEl=document.getElementById('app');
+  if(user){
+    _uid=user.uid;
+    loginScreen.style.display='none';
+    appEl.style.display='flex';
+    await loadData();
+    render();
+  } else {
+    _uid=null;
+    loginScreen.style.display='flex';
+    appEl.style.display='none';
+  }
+});
+
+// ── UI 렌더링 함수들 ──────────────────────────────────────────
+function render(){
+  renderSidebar();
+  if(UI.view==='student') renderStudentView();
+  else renderClassView();
+}
+
+function renderSidebar(){
+  const clsList=[{id:'c1',name:'1반'},{id:'c2',name:'2반'},{id:'c3',name:'3반'},{id:'c4',name:'4반'},{id:'c5',name:'5반'},{id:'c6',name:'6반'},{id:'c7',name:'7반'},{id:'c8',name:'8반'},{id:'c9',name:'9반'}];
+  let h=`<div class="sb-head"><div class="sb-title">학생 활동기록</div></div><div class="sb-scroll"><div class="sb-sec">학급 목록</div>`;
+  clsList.forEach(c=>{
+    h+=`<button class="sb-btn${UI.cid===c.id?' active':''}" onclick="selCls('${c.id}')">${c.name}</button>`;
+  });
+  h+=`</div><button class="sb-settings" onclick="openMd('import')">📥 데이터 이사(JSON)</button>
+      <button class="sb-settings" onclick="openMd('settings')">⚙ 설정(API 키)</button>
+      <button class="sb-settings" onclick="auth.signOut()" style="color:var(--red)">🔓 로그아웃</button>`;
+  document.getElementById('sidebar').innerHTML=h;
+}
+
+function renderClassView(){
+  const stds=APP.students[UI.cid]||[];
+  let h=`<div class="hd"><h1>${UI.cid.replace('c','')}반 명단</h1></div><div class="slist">`;
+  if(!stds.length) h+=`<div class="empty">데이터를 업로드하세요.</div>`;
+  stds.forEach(s=>{
+    h+=`<div class="scard" onclick="selStu('${s.id}')">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div class="stu-av">${s.number}</div><div style="font-weight:800">${s.name}</div>
+          </div>
+        </div>`;
+  });
+  h+=`</div>`;
+  document.getElementById('main').innerHTML=h;
+}
+
+function renderStudentView(){
+  const stu=(APP.students[UI.cid]||[]).find(s=>s.id===UI.sid);
+  const recs=(APP.records[UI.cid+'__'+UI.sid]||[]).sort((a,b)=>b.date.localeCompare(a.date));
+  let h=`<div class="stu-hd"><button class="btn btn-sec" onclick="UI.view='class';render()">← 목록</button><h1>${stu.name}</h1>
+    <div style="display:flex;gap:8px"><button class="btn btn-sec" onclick="openMd('draft')">✦ AI 초안</button><button class="btn btn-pri" onclick="openMd('add')">+ 기록 추가</button></div>
+    </div><div style="padding:22px;overflow-y:auto;flex:1">`;
+  recs.forEach(r=>{
+    h+=`<div class="rec-card" style="background:#fff;padding:16px;border-radius:12px;margin-bottom:12px;border:1px solid var(--border)">
+        <div style="font-size:11px;font-weight:800;color:var(--blue-m);margin-bottom:6px">${r.date} · ${r.type}</div>
+        <div style="color:var(--text);line-height:1.6">${r.content}</div>
+      </div>`;
+  });
+  h+=`</div>`;
+  document.getElementById('main').innerHTML=h;
+}
+
+// ── 기능 함수 ──────────────────────────────────────────────────
+window.selCls=(id)=>{UI.cid=id;UI.sid=null;UI.view='class';render();};
+window.selStu=(id)=>{UI.sid=id;UI.view='student';render();};
+
+window.openMd=(type)=>{
+  let body='';
+  if(type==='settings'){
+    body=`<div class="field"><label>API 키 입력</label><input type="password" id="api-inp" class="inp" value="${APP.apiKey}"></div>
+          <button class="btn btn-pri" onclick="APP.apiKey=document.getElementById('api-inp').value;saveToServer();closeMd()">저장</button>`;
+    wrapMd("설정", body);
+  } else if(type==='add'){
+    body=`<div class="field"><label>날짜</label><input type="date" id="rd" class="inp" value="${new Date().toISOString().slice(0,10)}"></div>
+          <div class="field"><label>내용</label><textarea id="rc" class="textarea" rows="4"></textarea></div>
+          <button class="btn btn-pri" onclick="addRec()">저장</button>`;
+    wrapMd("기록 추가", body);
+  } else if(type==='import'){
+    body=`<p style="margin-bottom:10px">기존 JSON 파일을 선택하세요.</p><input type="file" onchange="importJson(this)">`;
+    wrapMd("데이터 이사", body);
+  } else if(type==='draft'){
+    showDraft();
+  }
+};
+
+async function addRec(){
+  const date=document.getElementById('rd').value, cont=document.getElementById('rc').value;
+  const k=UI.cid+'__'+UI.sid;
+  if(!APP.records[k])APP.records[k]=[];
+  APP.records[k].unshift({id:Date.now().toString(),date,type:'자율',content:cont});
+  await saveData(); closeMd(); render();
+}
+
+async function importJson(input){
+  const r=new FileReader();
+  r.onload=async(e)=>{
+    const d=JSON.parse(e.target.result);
+    APP.students=d.students; APP.records=d.records;
+    await saveData(); alert('이사 완료!'); location.reload();
+  };
+  r.readAsText(input.files[0]);
+}
+
+// ── AI 기능 (Claude) ───────────────────────────────────────────
+async function showDraft(){
+  const stu=(APP.students[UI.cid]||[]).find(s=>s.id===UI.sid);
+  const recs=APP.records[UI.cid+'__'+UI.sid]||[];
+  if(!recs.length)return alert("기록이 없습니다.");
+  wrapMd("AI 초안 생성", `<div class="ai-loading">⏳ 분석 중...</div>`);
+  const txt=recs.map(r=>r.content).join('\n');
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':APP.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-3-5-sonnet-20240620',max_tokens:1000,messages:[{role:'user',content:`${stu.name}의 활동:\n${txt}\n\n위 기반으로 생기부 초안 500자 작성해줘.`}]})
+    });
+    const d=await res.json();
+    document.querySelector('.modal-body').innerHTML=`<div class="ai-box">${d.content[0].text}</div>`;
+  }catch(e){alert("실패: "+e.message); closeMd();}
+}
+
+function wrapMd(title,body){
+  document.getElementById('ov').innerHTML=`<div class="ov" onclick="if(event.target===this)closeMd()"><div class="modal"><div class="modal-hd"><h3>${title}</h3><button class="modal-x" onclick="closeMd()">×</button></div><div class="modal-body">${body}</div></div></div>`;
+}
+window.closeMd=()=>document.getElementById('ov').innerHTML='';
+</script>
+</body>
+</html>
