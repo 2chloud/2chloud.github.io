@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>학생 활동기록 AI 웹앱</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+
+<style>
+/* --- 기존 스타일 전체 적용 --- */
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:'Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif;background:#EEF2F7;color:#111827;font-size:14px}
+:root{
+  --navy:#1A2535;--navy2:#243040;--blue:#1E40AF;--blue-l:#DBEAFE;--blue-m:#1D4ED8;--blue-d:#1E3A8A;
+  --purple:#6D28D9;--purple-l:#EDE9FE;
+  --green:#065F46;--green-l:#D1FAE5;
+  --amber:#92400E;--amber-l:#FEF3C7;
+  --slate:#1E293B;--slate-l:#E0EEFF;
+  --red:#DC2626;--red-l:#FEE2E2;
+  --border:#D1D5DB;--bg:#EEF2F7;--card:#FFFFFF;
+  --text:#111827;--muted:#6B7280;--soft:#9CA3AF;
+  --success:#059669
+}
+.app{display:flex;height:100vh;overflow:hidden}
+
+/* 로그인 화면 */
+.login-screen{position:fixed;inset:0;background:linear-gradient(135deg,#0F1C2E 0%,#1A2535 100%);display:flex;align-items:center;justify-content:center;z-index:9999}
+.login-card{background:#fff;border-radius:20px;padding:44px 40px;width:360px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.login-title{font-size:22px;font-weight:900;color:#111827;margin-bottom:8px}
+.login-btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:13px 20px;background:#fff;border:1.5px solid #E5E7EB;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;transition:all .15s}
+.login-btn:hover{background:#F9FAFB;border-color:#93C5FD}
+
+/* 사이드바 및 메인 레이아웃 (기존 스타일 유지) */
+.sb{width:220px;min-width:220px;background:#0F1C2E;display:flex;flex-direction:column;overflow:hidden}
+.sb-head{padding:20px 18px 16px;border-bottom:1px solid rgba(255,255,255,0.1)}
+.sb-title{font-size:18px;font-weight:800;color:#FFFFFF}
+.sb-scroll{flex:1;overflow-y:auto}
+.sb-btn{width:100%;display:flex;align-items:center;padding:11px 18px;background:transparent;border:none;border-left:3px solid transparent;cursor:pointer;color:#E8F2FA;font-family:inherit;text-align:left}
+.sb-btn.active{background:rgba(59,130,246,0.18);border-left-color:#60A5FA;font-weight:800}
+.sb-settings{padding:12px 18px;border-top:1px solid rgba(255,255,255,0.07);background:none;border:none;cursor:pointer;color:#8AAFD0;font-size:13px;font-weight:700;text-align:left;width:100%}
+
+.main{flex:1;min-width:0;display:flex;flex-direction:column;overflow:hidden}
+.hd{padding:14px 22px;background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.fb{padding:8px 22px;background:#F8FAFC;border-bottom:1px solid var(--border);display:flex;gap:6px;align-items:center;flex-shrink:0}
+.chip{padding:3px 12px;border-radius:999px;font-size:12px;cursor:pointer;border:1px solid var(--border);background:#fff}
+.chip.active{background:var(--navy);color:#fff}
+
+.slist{flex:1;overflow-y:auto;padding:14px 22px;display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px}
+.scard{background:var(--card);border:1px solid var(--border);border-radius:11px;padding:12px 13px;cursor:pointer;transition:all 0.1s}
+.scard:hover{border-color:var(--blue-m)}
+.stu-av{width:34px;height:34px;border-radius:8px;background:#F1F5F9;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#4B5563}
+
+/* AI 기능 관련 스타일 */
+.ai-box{background:#F9FAFB;border:1px solid var(--border);border-radius:10px;padding:14px;font-size:13px;line-height:1.8;min-height:120px;white-space:pre-wrap;max-height:380px;overflow-y:auto}
+.ai-loading{text-align:center;padding:36px 0;color:var(--muted)}
+.ana-opt{border:1px solid var(--border);border-radius:11px;padding:13px;cursor:pointer;background:#F9FAFB;margin-bottom:9px;transition:all .12s}
+.ana-opt:hover{border-color:#93C5FD;background:#EFF6FF}
+
+/* 모달 및 기타 */
+.ov{position:fixed;inset:0;background:rgba(0,0,0,0.44);display:flex;align-items:center;justify-content:center;z-index:999;padding:14px}
+.modal{background:var(--card);border-radius:16px;width:100%;max-width:560px;max-height:92vh;overflow:auto}
+.modal-hd{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
+.modal-title{font-weight:800}
+.modal-x{background:none;border:none;cursor:pointer;font-size:21px;color:var(--soft)}
+.modal-body{padding:20px}
+.inp, .textarea{width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;outline:none}
+.btn{padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;border:none}
+.btn-pri{background:var(--blue);color:#fff}
+.btn-sec{background:#F1F5F9;border:1px solid var(--border)}
+</style>
+</head>
+<body>
+
+<div id="login-screen" class="login-screen" style="display:none">
+  <div class="login-card">
+    <div style="font-size:40px; margin-bottom:15px">🤖</div>
+    <div class="login-title">학급 기록 AI 관리도구</div>
+    <div style="color:#6B7280; margin-bottom:30px; font-size:14px">Anthropic AI 기반의 스마트한 기록 관리</div>
+    <button class="login-btn" onclick="signInWithGoogle()">
+      <svg viewBox="0 0 24 24" width="20"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+      Google 계정으로 시작하기
+    </button>
+  </div>
+</div>
+
+<div id="app" class="app" style="display:none">
+  <div class="sb" id="sidebar"></div>
+  <div class="main" id="main"></div>
+</div>
+<div id="ov"></div>
+
+<script>
+// --- 전역 데이터 구조 ---
+let _uid = null;
+let APP = { students: {}, records: {}, hrid: 'c7', apiKey: '', contacts: {}, visibleCls: null, visibleSelCls: [] };
+let UI = { cid: 'c7', sid: null, view: 'class', ft: '전체', fd: '', sq: '', fdOpen: false, calYM: '' };
+const ALL_CLS = [{id:'c1',name:'1반'},{id:'c2',name:'2반'},{id:'c3',name:'3반'},{id:'c4',name:'4반'},{id:'c5',name:'5반'},{id:'c6',name:'6반'},{id:'c7',name:'7반'},{id:'c8',name:'8반'},{id:'c9',name:'9반'}];
+const TYPES_ALL = ['자율','진로','행동특성','동아리','상담메모','교과','학종분석'];
+
+// --- Firebase 초기화 ---
+const firebaseConfig = {
+  apiKey: "AIzaSyDfnG6koBNqYADWZqUN9wn61wpORBW3SEg",
+  authDomain: "mystudentrecord-b51e9.firebaseapp.com",
+  projectId: "mystudentrecord-b51e9",
+  storageBucket: "mystudentrecord-b51e9.firebasestorage.app",
+  messagingSenderId: "128152764056",
+  appId: "1:128152764056:web:a23de9f889aeb773d85aed"
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+// --- 인증 로직 ---
+async function signInWithGoogle() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  try { await auth.signInWithPopup(provider); } catch(e) { alert("로그인 실패"); }
+}
+async function doSignOut() {
+  if(confirm('로그아웃하시겠습니까?')) await auth.signOut();
+}
+
+auth.onAuthStateChanged(async (user) => {
+  if (user) {
+    _uid = user.uid;
+    await loadFromServer();
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    render();
+  } else {
+    _uid = null;
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+  }
+});
+
+// --- 데이터 동기화 ---
+async function saveToServer() {
+  if (!_uid) return;
+  await db.collection('users').doc(_uid).set({
+    students: APP.students,
+    records: APP.records,
+    hrid: APP.hrid,
+    apiKey: APP.apiKey,
+    contacts: APP.contacts,
+    visibleCls: APP.visibleCls,
+    visibleSelCls: APP.visibleSelCls
+  }, { merge: true });
+}
+
+async function loadFromServer() {
+  const doc = await db.collection('users').doc(_uid).get();
+  if (doc.exists) {
+    const d = doc.data();
+    APP = { ...APP, ...d };
+  }
+}
+
+// --- UI 렌더링 (기존 AI 버전 로직 유지) ---
+function render() {
+  renderSidebar();
+  if(UI.view === 'student') renderStudentView();
+  else if(UI.view === 'stats') renderStats(); // 필요 시 구현
+  else renderClassView();
+}
+
+function renderSidebar() {
+  let h = `<div class="sb-head"><div class="sb-title">기록 관리</div></div><div class="sb-scroll">`;
+  ALL_CLS.forEach(c => {
+    const active = UI.cid === c.id ? 'active' : '';
+    h += `<button class="sb-btn ${active}" onclick="selCls('${c.id}')">${c.name}</button>`;
+  });
+  h += `</div>
+    <button class="sb-settings" onclick="openMd('import')">📥 데이터 업로드(이사)</button>
+    <button class="sb-settings" onclick="openMd('settings')">⚙ 설정(API 키)</button>
+    <button class="sb-settings" onclick="doSignOut()" style="color:var(--red)">🔓 로그아웃</button>`;
+  document.getElementById('sidebar').innerHTML = h;
+}
+
+function renderClassView() {
+  const stds = APP.students[UI.cid] || [];
+  let h = `<div class="hd"><h1>${UI.cid.replace('c','')}반 명단</h1></div><div class="slist">`;
+  if(!stds.length) h += `<div style="grid-column:1/-1; padding:100px 0; text-align:center; color:var(--soft)">데이터를 업로드하세요.</div>`;
+  stds.forEach(s => {
+    h += `<div class="scard" onclick="selStu('${s.id}')">
+            <div style="display:flex; align-items:center; gap:12px">
+              <div class="stu-av">${s.number}</div>
+              <div style="font-weight:800; font-size:15px">${s.name}</div>
+            </div>
+          </div>`;
+  });
+  h += `</div>`;
+  document.getElementById('main').innerHTML = h;
+}
+
+function renderStudentView() {
+  const stu = (APP.students[UI.cid]||[]).find(s => s.id === UI.sid);
+  const recs = (APP.records[UI.cid + '__' + UI.sid] || []).sort((a,b)=>b.date.localeCompare(a.date));
+  let h = `<div class="stu-hd">
+    <div style="display:flex; align-items:center; gap:15px">
+      <button class="btn btn-sec" onclick="goBack()">← 목록</button>
+      <h1 style="font-size:22px">${stu.name} <span style="font-size:14px; font-weight:400; color:var(--soft)">${stu.number}번</span></h1>
+    </div>
+    <div style="display:flex; gap:8px">
+      <button class="btn btn-sec" onclick="openMd('draft')">✦ AI 초안</button>
+      <button class="btn btn-pri" onclick="openMd('add')">+ 기록 추가</button>
+    </div>
+  </div>
+  <div style="padding:22px; flex:1; overflow-y:auto">`;
+  recs.forEach(r => {
+    h += `<div class="rec-card" style="background:#fff; padding:16px; border-radius:12px; margin-bottom:12px; border:1px solid var(--border)">
+            <div style="font-size:11px; font-weight:800; color:var(--blue-m); margin-bottom:6px">${r.date} · ${r.type}</div>
+            <div style="color:var(--text); line-height:1.6">${r.content}</div>
+          </div>`;
+  });
+  h += `</div>`;
+  document.getElementById('main').innerHTML = h;
+}
+
+// --- 함수 및 내비게이션 ---
+window.selCls = (id) => { UI.cid = id; UI.sid = null; UI.view = 'class'; render(); };
+window.selStu = (id) => { UI.sid = id; UI.view = 'student'; render(); };
+window.goBack = () => { UI.view = 'class'; UI.sid = null; render(); };
+
+// --- 모달 로직 ---
+window.openMd = (type) => {
+  if(type === 'settings') {
+    const body = `
+      <div class="field"><label style="font-weight:700">Anthropic API 키</label>
+      <input type="password" id="api-key-inp" class="inp" value="${APP.apiKey}" placeholder="sk-ant-..."></div>
+      <button class="btn btn-pri" onclick="saveApiKey()">저장</button>`;
+    wrapMd("설정", body);
+  } else if(type === 'import') {
+    const body = `<p>기존 JSON 백업 파일을 선택하여 클라우드로 데이터를 옮깁니다.</p><input type="file" onchange="importJson(this)">`;
+    wrapMd("데이터 이사", body);
+  } else if(type === 'add') {
+    const body = `
+      <div class="field"><label>날짜</label><input type="date" id="new-date" class="inp" value="${new Date().toISOString().slice(0,10)}"></div>
+      <div class="field"><label>유형</label><select id="new-type" class="inp">${TYPES_ALL.map(t=>`<option>${t}</option>`).join('')}</select></div>
+      <div class="field"><label>내용</label><textarea id="new-content" class="textarea" rows="4"></textarea></div>
+      <button class="btn btn-pri" onclick="addRecord()">저장</button>`;
+    wrapMd("기록 추가", body);
+  } else if(type === 'draft') {
+    showDraft(); // 기존 AI 초안 생성 함수 호출
+  }
+};
+
+window.saveApiKey = async () => {
+  APP.apiKey = document.getElementById('api-key-inp').value.trim();
+  await saveToServer();
+  alert("API 키가 클라우드에 저장되었습니다.");
+  closeMd();
+};
+
+window.addRecord = async () => {
+  const content = document.getElementById('new-content').value;
+  if(!content) return;
+  const key = UI.cid + '__' + UI.sid;
+  if(!APP.records[key]) APP.records[key] = [];
+  APP.records[key].unshift({
+    id: Date.now().toString(),
+    date: document.getElementById('new-date').value,
+    type: document.getElementById('new-type').value,
+    content: content
+  });
+  await saveToServer();
+  closeMd(); render();
+};
+
+window.importJson = (input) => {
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const data = JSON.parse(e.target.result);
+    APP.students = data.students || {};
+    APP.records = data.records || {};
+    await saveToServer();
+    alert("이사 완료!");
+    location.reload();
+  };
+  reader.readAsText(input.files[0]);
+};
+
+// --- AI 기능 (Claude API 연동) ---
+async function showDraft() {
+  const stu = (APP.students[UI.cid]||[]).find(s => s.id === UI.sid);
+  const recs = APP.records[UI.cid + '__' + UI.sid] || [];
+  if(!recs.length) return alert("기록이 없습니다.");
+  
+  wrapMd("AI 생기부 초안 생성", `<div class="ai-loading">⏳ AI가 기록을 분석하여 초안을 작성 중입니다...</div>`);
+
+  const txt = recs.map(r => `[${r.date}] ${r.content}`).join('\n');
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': APP.apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-3-5-sonnet-20240620',
+        max_tokens: 1000,
+        messages: [{role: 'user', content: `${stu.name} 학생의 활동 기록:\n${txt}\n\n위 내용을 바탕으로 생기부 문체로 500자 이내의 초안을 작성해줘.`}]
+      })
+    });
+    const d = await res.json();
+    const result = d.content[0].text;
+    document.querySelector('.modal-body').innerHTML = `<div class="ai-box">${result}</div><div class="modal-foot"><button class="btn btn-sec" onclick="closeMd()">닫기</button></div>`;
+  } catch(e) {
+    alert("API 호출 실패: " + e.message);
+    closeMd();
+  }
+}
+
+function wrapMd(title, body) {
+  document.getElementById('ov').innerHTML = `<div class="ov" onclick="if(event.target===this)closeMd()"><div class="modal"><div class="modal-hd"><h3>${title}</h3><button class="modal-x" onclick="closeMd()">×</button></div><div class="modal-body">${body}</div></div></div>`;
+}
+window.closeMd = () => document.getElementById('ov').innerHTML = '';
+
+</script>
+</body>
+</html>
