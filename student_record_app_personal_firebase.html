@@ -2285,15 +2285,22 @@ function showAnalysis(){
 }
 function showAnalysisMenu(){
   const stu=getStu();
+  const hasClaude=!!APP.apiKey;
+  const uploadOpt=hasClaude
+    ?`<div class="ana-opt" onclick="anaMode('upload')">
+        <div class="ana-opt-title">📄 생기부 PDF 업로드 분석</div>
+        <div class="ana-opt-desc">기존 생기부 PDF를 업로드하면 학종 관점에서 부족한 요소를 파악합니다.</div>
+      </div>`
+    :`<div class="ana-opt" style="opacity:.5;cursor:not-allowed;pointer-events:none">
+        <div class="ana-opt-title">📄 생기부 PDF 업로드 분석 <span style="font-size:11px;color:#DC2626;font-weight:700">Claude 전용</span></div>
+        <div class="ana-opt-desc">PDF 분석은 Claude API 키가 필요합니다. Gemini 키만 있을 때는 기록 기반 분석을 이용해주세요.</div>
+      </div>`;
   const body=`
     <div class="ana-opt" onclick="anaMode('records')">
       <div class="ana-opt-title">📊 기록 기반 분석</div>
-      <div class="ana-opt-desc">입력된 활동 기록을 바탕으로 학종 역량 현황과 보완점을 분석합니다.</div>
+      <div class="ana-opt-desc">입력된 활동 기록을 바탕으로 학종 역량 현황과 보완점을 분석합니다. (Claude/Gemini 모두 지원)</div>
     </div>
-    <div class="ana-opt" onclick="anaMode('upload')">
-      <div class="ana-opt-title">📄 생기부 PDF 업로드 분석</div>
-      <div class="ana-opt-desc">기존 생기부 PDF를 업로드하면 학종 관점에서 부족한 요소를 파악합니다.</div>
-    </div>
+    ${uploadOpt}
     <div class="modal-foot"><button class="btn btn-sec" onclick="closeMd()">취소</button></div>`;
   wrapMd(esc(stu?.name||'')+' — 학종 분석',body,'modal-lg');
 }
