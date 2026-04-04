@@ -25,20 +25,22 @@ html,body{height:100%;font-family:'Apple SD Gothic Neo','Noto Sans KR','Malgun G
 .app{display:flex;height:100vh;overflow:hidden}
 
 /* ── SIDEBAR ── */
-.sb{width:220px;min-width:220px;background:#0F1C2E;display:flex;flex-direction:column;overflow:hidden}
+.sb{width:200px;min-width:200px;background:#0F1C2E;display:flex;flex-direction:column;overflow:hidden}
 .sb-head{padding:20px 18px 16px;border-bottom:1px solid rgba(255,255,255,0.1)}
 .sb-eyebrow{font-size:10px;color:#5B8DB8;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px;font-weight:700}
 .sb-title{font-size:18px;font-weight:800;color:#FFFFFF;line-height:1.2}
 .sb-sub{font-size:12px;color:#5B8DB8;margin-top:3px;font-weight:500}
-.sb-scroll{flex:1;overflow-y:auto}
-.sb-sec{padding:14px 18px 6px;font-size:10px;color:#3D6080;font-weight:800;letter-spacing:2px;text-transform:uppercase}
+.sb-scroll-wrap{flex:1;position:relative;overflow:hidden;min-height:0}
+.sb-scroll{height:100%;overflow-y:auto;background:#060E18}
+.sb-scroll-wrap::after{content:'';position:absolute;bottom:0;left:0;right:0;height:32px;background:linear-gradient(transparent,#060E18);pointer-events:none;z-index:1}
+.sb-sec{padding:10px 15px 4px;font-size:10px;color:#3D6080;font-weight:800;letter-spacing:2px;text-transform:uppercase}
 .sb-btn{width:100%;display:flex;align-items:center;padding:0;background:transparent;border:none;border-left:3px solid transparent;cursor:pointer;font-family:inherit;transition:all .12s}
 .sb-btn:hover{background:rgba(255,255,255,0.05)}
 .sb-btn.active{background:rgba(59,130,246,0.18);border-left-color:#60A5FA}
-.sb-btn-inner{padding:11px 18px;flex:1}
-.sb-cls-name{font-size:16px;color:#E8F2FA;font-weight:700;display:flex;align-items:center;gap:8px}
+.sb-btn-inner{padding:7px 15px;flex:1}
+.sb-cls-name{font-size:13px;color:#E8F2FA;font-weight:700;display:flex;align-items:center;gap:6px}
 .sb-btn.active .sb-cls-name{color:#FFFFFF;font-weight:800}
-.sb-cls-meta{font-size:12px;color:#8AAFD0;margin-top:3px;font-weight:600}
+.sb-cls-meta{font-size:11px;color:#8AAFD0;font-weight:500}
 .sb-btn.active .sb-cls-meta{color:#7AAAD0;font-weight:600}
 .sb-badge{font-size:10px;padding:2px 8px;background:#1D4ED8;color:#BFDBFE;border-radius:5px;font-weight:800;letter-spacing:.3px}
 .sb-stat-item{width:100%;padding:8px 18px;display:flex;align-items:center;gap:9px;background:transparent;border:none;border-left:3px solid transparent;cursor:pointer;font-family:inherit;transition:all .12s}
@@ -46,7 +48,7 @@ html,body{height:100%;font-family:'Apple SD Gothic Neo','Noto Sans KR','Malgun G
 .sb-stat-item.active{background:rgba(59,130,246,0.18);border-left-color:#60A5FA}
 .sb-stat-name{font-size:16px;color:#C8DCF0;font-weight:600}
 .sb-stat-item.active .sb-stat-name{color:#FFFFFF;font-weight:800}
-.sb-settings{padding:12px 18px;border-top:1px solid rgba(255,255,255,0.07);background:none;border-bottom:none;border-right:none;border-left:none;cursor:pointer;font-family:inherit;color:#8AAFD0;font-size:13px;font-weight:700;text-align:left;display:flex;align-items:center;gap:8px;width:100%;transition:color .12s}
+.sb-settings{padding:9px 15px;border-top:1px solid rgba(255,255,255,0.07);background:none;border-bottom:none;border-right:none;border-left:none;cursor:pointer;font-family:inherit;color:#8AAFD0;font-size:12px;font-weight:700;text-align:left;display:flex;align-items:center;gap:7px;width:100%;transition:color .12s}
 .sb-settings:hover{color:#C8DCF0}
 
 /* ── MAIN ── */
@@ -374,6 +376,17 @@ input[type=date].has-val{background:var(--blue-l);border-color:#93C5FD}
 .login-btn:hover{background:#F9FAFB;border-color:#D1D5DB;box-shadow:0 2px 8px rgba(0,0,0,.08)}
 .login-btn svg{width:20px;height:20px;flex-shrink:0}
 .login-notice{font-size:11px;color:#9CA3AF;margin-top:20px;line-height:1.6}
+/* ── SB LINK BAR ── */
+.sb-bottom{background:#1A2535;border-top:2px solid rgba(255,255,255,0.12)}
+.sb-act-btn{flex:1;display:flex;align-items:center;justify-content:center;padding:9px 6px;background:none;border:none;border-right:1px solid rgba(255,255,255,0.07);cursor:pointer;color:#93A8C0;font-size:12px;font-weight:700;gap:5px;transition:all .12s}
+.sb-act-btn:last-child{border-right:none}
+.sb-act-btn:hover{background:rgba(255,255,255,0.07);color:#C8DCF0}
+.sb-links-grid{display:grid;grid-template-columns:1fr 1fr;border-top:1px solid rgba(255,255,255,0.07)}
+.sb-link-btn{display:flex;align-items:center;gap:7px;padding:9px 12px;background:none;border:none;border-right:1px solid rgba(255,255,255,0.07);border-bottom:1px solid rgba(255,255,255,0.07);cursor:pointer;color:#7090A8;font-size:12px;font-weight:600;transition:all .12s;text-align:left;white-space:nowrap;overflow:hidden}
+.sb-link-btn:nth-child(2n){border-right:none}
+.sb-link-btn:nth-last-child(-n+2){border-bottom:none}
+.sb-link-btn:hover{background:rgba(255,255,255,0.06);color:#C8DCF0}
+.sb-link-icon{font-size:14px;flex-shrink:0}
 /* ── MISC ── */
 .div{height:1px;background:var(--border);margin:12px 0}
 .type-dot{font-size:11px;white-space:nowrap}
@@ -429,26 +442,23 @@ input[type=date].has-val{background:var(--blue-l);border-color:#93C5FD}
 </style>
 </head>
 <body>
-  <div id="login-screen" class="login-screen" style="display:none">
-    <div class="login-card">
-      <div class="login-logo">🎓</div>
-      <div class="login-title">학생 기록 관리 시스템</div>
-      <div class="login-sub">구글 계정으로 로그인하여<br>데이터를 안전하게 관리하세요.</div>
-      <button class="login-btn" onclick="signInWithGoogle()">
-        <svg viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
-        Google 계정으로 로그인
-      </button>
-      <div class="login-notice">개인 계정(@gmail.com) 사용을 권장합니다.</div>
-    </div>
+<div id="login-screen" class="login-screen" style="display:none">
+  <div class="login-card">
+    <div class="login-logo">🎓</div>
+    <div class="login-title">학생 기록 관리 시스템 (AI)</div>
+    <div class="login-sub">구글 계정으로 로그인하여<br>데이터를 안전하게 동기화하세요.</div>
+    <button class="login-btn" onclick="signInWithGoogle()">
+      <svg viewBox="0 0 24 24" width="20" height="20"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
+      Google 계정으로 로그인
+    </button>
+    <div class="login-notice">개인 계정(@gmail.com) 사용을 권장합니다.</div>
   </div>
-
-  <div id="app" class="app" style="display:none">
-    <div class="sb" id="sidebar"></div>
-    <div class="main" id="main"></div>
-  </div>
-
-  <div id="ov"></div>
-
+</div>
+<div id="app" class="app" style="display:none">
+  <div class="sb" id="sidebar"></div>
+  <div class="main" id="main"></div>
+</div>
+<div id="ov"></div>
 <script>
 // ────────────────────── STUDENT DATA ──────────────────────
 const SEED={
@@ -476,6 +486,7 @@ const TYPES_SB=['자율','진로','행동특성','동아리','상담메모','교
 let APP={classes:ALL_CLS, students:{}, records:{}, hrid:'', apiKey:'', todos:{}, contacts:{}, visibleCls:null, visibleSelCls:[]};
 
 let _uid=null;
+let _currentUser=null;
 let UI={cid:'c1', sid:null, view:'class', ft:'전체', fd:'', sq:'', modal:null, fdOpen:false, calYM:'', srchQ:'', srchResults:[], ttStu:'', showTt:false, ctQ:''};
 let AR={type:'', date:'', content:'', sids:[], q:''};
 let FU={step:'upload', items:[], fname:'', err:'', forceType:'', date:''};
@@ -615,7 +626,7 @@ function renderSidebar(){
   const isStats=UI.view==='stats';
   const hrCls2=APP.classes.find(c=>c.id===APP.hrid);
   const otherCls=APP.classes.filter(c=>c.id!==APP.hrid);
-  const _u=firebase.auth().currentUser;
+  const _u=_currentUser;
   const _uPhoto=_u?.photoURL?`<img src="${_u.photoURL}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;border:2px solid rgba(255,255,255,.2)">`:
     `<div style="width:28px;height:28px;border-radius:50%;background:#2D4A6E;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#8AAFD0">${(_u?.displayName||'?')[0]}</div>`;
   let h=`<div class="sb-head">
@@ -630,7 +641,7 @@ function renderSidebar(){
     <div class="sb-title" onclick="selCls(APP.hrid||'c1')" style="cursor:pointer" title="홈으로">학생 활동기록</div>
     <div class="sb-sub">2026학년도 2학년</div>
   </div>`;
-  h+=`<div class="sb-scroll">
+  h+=`<div class="sb-scroll-wrap"><div class="sb-scroll">
     <div class="sb-sec">메뉴</div>
     <button class="sb-stat-item${UI.view==='search'?' active':''}" onclick="selSearch()">
       <span class="sb-stat-name">🔍 기록 검색</span>
@@ -659,13 +670,37 @@ function renderSidebar(){
     const sel=c.id===UI.cid;
     const sc=getStds(c.id).length;const rc=rcnt(c.id);
     h+=`<button class="sb-btn${sel?' active':''}" onclick="selCls('${c.id}')">
-      <div class="sb-btn-inner">
+      <div class="sb-btn-inner" style="display:flex;align-items:center;justify-content:space-between">
         <div class="sb-cls-name">${c.name}</div>
         <div class="sb-cls-meta">${sc}명${rc?' · '+rc+'건':''}</div>
       </div></button>`;
   });
-  h+=`</div><button class="sb-settings" onclick="exportJSON()" style="color:#93C5FD;font-weight:700">💾&nbsp; 백업</button><button class="sb-settings" onclick="window.open('https://gen.eduptl.kr/','_blank')">🏫&nbsp; 업무포털</button><button class="sb-settings" onclick="window.open('https://kwangjug.riroschool.kr/','_blank')">📋&nbsp; 광주여고 리로스쿨</button><button class="sb-settings" onclick="window.open('https://notebooklm.google.com/notebook/019fe5d5-c730-4f13-b046-884488ea920b','_blank')">📓&nbsp; 2학년부 notebookLM</button><button class="sb-settings" onclick="openMd('settings')">⚙&nbsp; 데이터 관리</button>`;
-  document.getElementById('sidebar').innerHTML=h;
+  h+=`</div></div>
+  <div class="sb-bottom">
+    <div style="display:flex;border-bottom:1px solid rgba(255,255,255,0.07)">
+      <button class="sb-act-btn" onclick="exportJSON()" style="border-right:1px solid rgba(255,255,255,0.07)">
+        <span style="color:#93C5FD">💾</span> 백업
+      </button>
+      <button class="sb-act-btn" onclick="openMd('settings')">
+        <span>⚙</span> 설정
+      </button>
+    </div>
+    <div class="sb-links-grid">
+      <button class="sb-link-btn" onclick="window.open('https://gen.eduptl.kr/','_blank')">
+        <span class="sb-link-icon">🏫</span>업무포털
+      </button>
+      <button class="sb-link-btn" onclick="window.open('https://kwangjug.riroschool.kr/','_blank')">
+        <span class="sb-link-icon">📋</span>리로스쿨
+      </button>
+      <button class="sb-link-btn" onclick="window.open('https://notebooklm.google.com/notebook/019fe5d5-c730-4f13-b046-884488ea920b','_blank')">
+        <span class="sb-link-icon">📓</span>노트북LM
+      </button>
+      <button class="sb-link-btn" onclick="window.open('http://kwangju-g.gen.hs.kr/main/main.php','_blank')">
+        <span class="sb-link-icon">🏢</span>학교 누리집
+      </button>
+    </div>
+  </div>`;
+    document.getElementById('sidebar').innerHTML=h;
 }
 
 // ────────────────────── CLASS VIEW ──────────────────────
@@ -2123,6 +2158,7 @@ auth.onAuthStateChanged(async(user)=>{
   const appEl=document.getElementById('app');
   if(user){
     _uid=user.uid;
+    _currentUser=user;
     loginScreen.style.display='none';
     appEl.style.display='flex';
     await loadData();
@@ -2131,6 +2167,7 @@ auth.onAuthStateChanged(async(user)=>{
     checkFirstVisit();
   } else {
     _uid=null;
+    _currentUser=null;
     APP={classes:ALL_CLS,students:{},records:{},hrid:'',apiKey:'',todos:{},contacts:{},visibleCls:null,visibleSelCls:[]};
     loginScreen.style.display='flex';
     appEl.style.display='none';
