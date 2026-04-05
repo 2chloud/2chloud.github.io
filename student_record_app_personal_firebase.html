@@ -481,8 +481,8 @@ const TYPE_LINK='연결됨';
 const TYPES_SB=['자율','진로','행동특성','동아리','상담메모','교과','학종분석'];
 
 // ────────────────────── APP STATE ──────────────────────
-let APP={classes:ALL_CLS, students:{}, records:{}, hrid:'c7', apiKey:'', geminiKey:'', todos:{}, contacts:{}, visibleCls:null, visibleSelCls:[]};
-let UI={cid:'c7', sid:null, view:'class', ft:'전체', fd:'', sq:'', modal:null, fdOpen:false, calYM:'', srchQ:'', srchResults:[], ttStu:'', showTt:false, ctQ:'', selSubj:''};
+let APP={classes:ALL_CLS, students:{}, records:{}, hrid:'c7', apiKey:'', geminiKey:'', todos:{}, contacts:{}, visibleCls:null};
+let UI={cid:'c7', sid:null, view:'class', ft:'전체', fd:'', sq:'', modal:null, fdOpen:false, calYM:'', srchQ:'', srchResults:[], ttStu:'', showTt:false, ctQ:''};
 let AR={type:'', date:'', content:'', sids:[], q:''};
 let FU={step:'upload', items:[], fname:'', err:'', forceType:'', date:''};
 let IMP={preview:null, err:''};
@@ -499,43 +499,6 @@ const getRecs=(cid,sid)=>APP.records[cid+'__'+sid]||[];
 const getCls=()=>APP.classes.find(c=>c.id===UI.cid);
 const getStu=()=>getStds(UI.cid).find(s=>s.id===UI.sid);
 const esc=s=>(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-function getSelSubjects(){
-  const subs={};
-  Object.values(TIMETABLE).forEach(cls=>
-    Object.values(cls).forEach(stu=>
-      Object.values(stu.s||{}).forEach(days=>
-        Object.values(days).forEach(cell=>{
-          const s=cell.s||'',r=cell.r||'';
-          if(/[A-Z]\d*$/.test(s)&&!/-\d{3}$/.test(s)&&!subs[s])subs[s]=r;
-        })
-      )
-    )
-  );
-  return Object.entries(subs).sort((a,b)=>a[0].localeCompare(b[0]));
-}
-function getSelSubjectStudents(subj){
-  const found={};
-  Object.entries(TIMETABLE).forEach(([clsNum,students])=>{
-    Object.entries(students).forEach(([stuNum,stu])=>{
-      Object.values(stu.s||{}).forEach(days=>{
-        Object.values(days).forEach(cell=>{
-          if(cell.s===subj){
-            const key=clsNum+'_'+stuNum;
-            if(!found[key]){
-              // 앱 students에서 실제 sid 찾기
-              const cid='c'+clsNum;
-              const appStu=getStds(cid).find(s=>s.number===stuNum||String(s.number)===stuNum);
-              if(appStu)found[key]={cid,s:appStu,cls:clsNum};
-            }
-          }
-        });
-      });
-    });
-  });
-  return Object.values(found).sort((a,b)=>
-    a.cls!==b.cls?a.cls.localeCompare(b.cls):parseInt(a.s.number)-parseInt(b.s.number)
-  );
-}
 function getAllStudents(){
   const all=[];
   APP.classes.forEach(c=>{
@@ -572,7 +535,7 @@ async function loadData(){
       APP.students=d.students||{};APP.records=d.records||{};
       APP.hrid=d.hrid||'c7';APP.apiKey=d.apiKey||'';APP.geminiKey=d.geminiKey||'';
       APP.todos=d.todos||{};APP.contacts=d.contacts||{};
-      APP.visibleCls=d.visibleCls||null;APP.visibleSelCls=d.visibleSelCls||[];
+      APP.visibleCls=d.visibleCls||null;
     }
   }catch(e){console.warn('loadData error',e);}
   // seed students if empty
@@ -590,7 +553,7 @@ async function saveData(){
     await db.collection('users').doc(_uid).set({
       students:APP.students,records:APP.records,hrid:APP.hrid,apiKey:APP.apiKey,geminiKey:APP.geminiKey||'',
       todos:APP.todos,contacts:APP.contacts,
-      visibleCls:APP.visibleCls||null,visibleSelCls:APP.visibleSelCls||[]
+      visibleCls:APP.visibleCls||null
     },{merge:true});
   }catch(e){console.warn('saveData error',e);}
 }
@@ -708,19 +671,7 @@ function renderSidebar(){
         <div class="sb-cls-meta">${sc}명${rc?' · '+rc+'건':''}</div>
       </div></button>`;
   });
-  // 선택과목반
-  if(APP.visibleSelCls&&APP.visibleSelCls.length>0){
-    h+=`<div class="sb-divider"></div><div class="sb-sec">선택과목반</div>`;
-    APP.visibleSelCls.forEach(subj=>{
-      const sel=UI.view==='selcls'&&UI.selSubj===subj;
-      const room=(getSelSubjects().find(([s])=>s===subj)||[])[1]||'';
-      h+=`<button class="sb-btn${sel?' active':''}" onclick="selSelCls('${subj}')">
-        <div class="sb-btn-inner">
-          <div class="sb-cls-name">${subj}</div>
-          <div class="sb-cls-meta">${room?room+'호':''}</div>
-        </div></button>`;
-    });
-  }
+
   h+=`</div></div>
   <div class="sb-bottom">
     <div class="sb-act-btn-row" style="display:flex;border-bottom:1px solid rgba(255,255,255,0.07)">
@@ -742,7 +693,7 @@ function renderSidebar(){
         <span class="sb-link-icon">📓</span>노트북LM
       </button>
       <button class="sb-link-btn" onclick="window.open('http://kwangju-g.gen.hs.kr/main/main.php','_blank')">
-        <span class="sb-link-icon">🏢</span>학교 누리집
+        <span class="sb-link-icon">🏢</span>학교 홈페이지
       </button>
     </div>
   </div>`;
@@ -831,7 +782,7 @@ function renderStudentView(){
 
   let h=`<div class="stu-hd">
     <div style="display:flex;gap:10px;align-items:center;margin-bottom:9px">
-      <button class="back-btn" style="margin-bottom:0" onclick="goBack()">← ${UI._prevView==='selcls'?UI._prevSelSubj:esc(cls.name)} 목록</button>
+      <button class="back-btn" style="margin-bottom:0" onclick="goBack()">← ${esc(cls.name)} 목록</button>
       ${UI._navStack&&UI._navStack.length?`<button class="back-btn" style="margin-bottom:0;color:var(--blue-m)" onclick="navBack()">← 이전 학생으로</button>`:''}
     </div>
     <div class="stu-info">
@@ -884,7 +835,8 @@ function renderStudentView(){
         days.forEach(d=>{
           const cell=sch[d];
           if(!cell||!cell.s){rows+='<td class="empty" style="color:#E5E7EB;text-align:center">-</td>';return;}
-          rows+=`<td><div class="tt-sub">${esc(cell.s)}</div><div class="tt-room">${cell.r}</div></td>`;
+          const roomDisp=(r)=>{if(!r)return '';const m=r.match(/^2(\d{2})$/);return m?`2-${parseInt(m[1])}`:r+'호';};
+          rows+=`<td><div class="tt-sub">${esc(cell.s)}</div><div class="tt-room">${roomDisp(cell.r)}</div></td>`;
         });
         rows+='</tr>';
       }
@@ -1299,123 +1251,6 @@ function confDelAll(sid,rid){
   }
 }
 
-// ────────────────────── SELCLS VIEW ──────────────────────
-function renderSelCls(){
-  const subj=UI.selSubj;
-  const students=getSelSubjectStudents(subj);
-  const room=(getSelSubjects().find(([s])=>s===subj)||[])[1]||'';
-
-  let h=`<div class="hd">
-    <div class="hd-left">
-      <h1>${subj}<span style="font-size:13px;color:var(--soft);font-weight:400;margin-left:8px">${room?room+'호 · ':''} ${students.length}명</span></h1>
-    </div>
-    <div class="hd-actions">
-      <button class="btn btn-pri btn-sm" onclick="openAddSelCls('${subj}')">+ 기록 추가</button>
-    </div></div>
-  <div class="slist">`;
-
-  students.forEach(({cid,s,cls})=>{
-    const recs=getRecs(cid,s.id);
-    const recCnt=recs.length;
-    const lastRec=recs.length?recs.slice().sort((a,b)=>b.date.localeCompare(a.date))[0]:null;
-    const typeCounts={};
-    recs.forEach(r=>{typeCounts[r.type]=(typeCounts[r.type]||0)+1;});
-    const typeStr=Object.entries(typeCounts).map(([t,n])=>`${t} ${n}`).join(' · ');
-    h+=`<div class="scard${s.flag?' flagged':''}" onclick="selCls('${cid}');setTimeout(()=>selStu('${s.id}'),50)">
-      <div class="scard-head">
-        <div class="scard-num">${cls}반 ${s.number}</div>
-        <span class="scard-name">${esc(s.name)}</span>
-        <button class="flag-btn${s.flag?' on':''}" onclick="toggleFlag('${cid}','${s.id}',event)" title="${s.flag?'팔로우업 해제':'팔로우업'}">🔖</button>
-      </div>
-      <div class="scard-body">
-        ${recCnt?`<div class="scard-tags">${typeStr}</div><div class="scard-date">${fmtD(lastRec.date)}</div>`:'<div style="font-size:11px;color:var(--soft)">기록 없음</div>'}
-      </div>
-    </div>`;
-  });
-
-  h+=`</div>`;
-  document.getElementById('main').innerHTML=h;
-}
-function openAddSelCls(subj){
-  // 기록 추가 모달 - 기본 유형 교과, 전체 수강생 선택 가능
-  const students=getSelSubjectStudents(subj);
-  AR={type:'교과',date:today(),content:'',sids:[],q:''};
-  // 임시로 cid를 담임반으로 설정 (학생 선택 후 각 반에 저장)
-  UI._selClsStudents=students;
-  showAddSelCls(subj);
-}
-function showAddSelCls(subj){
-  const students=UI._selClsStudents||[];
-  const types=TYPES_HR;
-  const typeHtml=types.map(t=>`<button class="type-opt to-${t}${AR.type===t?' on':''}" onclick="arTypeSelCls('${t}')">${t}</button>`).join('');
-  const fstds=AR.q?students.filter(({s})=>s.name.includes(AR.q)||String(s.number).includes(AR.q)):students;
-  const pickerHtml='<div class="picker-grid">'+fstds.map(({cid,s,cls})=>{
-    const key=cid+'__'+s.id;
-    const sel=AR.sids.includes(key);
-    return `<div class="prow${sel?' sel':''}" id="prsel-${key}" onclick="arToggleSel('${key}')">
-      <div class="chk${sel?' on':''}">${sel?'<span class="chk-tick">✓</span>':''}</div>
-      <span class="pnum" style="width:40px">${cls}반${s.number}</span>
-      <span class="pname${sel?' bold':''}">${esc(s.name)}</span></div>`;
-  }).join('')+'</div>';
-  const ok=AR.sids.length>0&&AR.content.trim()&&AR.date;
-  const body=`
-    <div class="field"><div class="lbl">활동 유형</div><div class="type-opts">${typeHtml}</div></div>
-    <div class="field"><div class="lbl">날짜</div><input type="date" class="inp" style="width:auto" value="${AR.date}" onchange="arDateSelCls(this.value)"></div>
-    <div class="field">
-      <div class="picker-hd"><div class="lbl" style="margin-bottom:0">학생 선택 <span style="color:var(--blue-m)">${AR.sids.length}명</span></div>
-        <div class="picker-acts"><button class="picker-act" style="color:var(--blue-m)" onclick="arAllSel()">전체</button><button class="picker-act" style="color:var(--soft)" onclick="arClearSel()">해제</button></div></div>
-      <input class="inp" style="margin:5px 0 6px" placeholder="이름 검색..." value="${esc(AR.q)}" oninput="arQSelCls(this.value)">
-      <div class="picker-box">${pickerHtml}</div>
-    </div>
-    <div class="field"><div class="lbl">기록 내용</div>
-      <div class="mention-wrap">
-        <textarea class="textarea" rows="4" id="ar-cont" placeholder="활동 내용을 입력하세요..." oninput="arCont(this.value);mentionCheck(this)" onkeydown="mentionKey(event)">${esc(AR.content)}</textarea>
-        <div class="mention-drop" id="mention-drop" style="display:none"></div>
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-sec" onclick="closeMd()">취소</button>
-      <button class="btn btn-pri" ${ok?'':'disabled'} onclick="submitSelCls()">${AR.sids.length>1?AR.sids.length+'명에게 추가':'기록 추가'}</button>
-    </div>`;
-  wrapMd(subj+' 기록 추가',body);
-}
-function arTypeSelCls(t){AR.type=t;showAddSelCls(UI.selSubj);}
-function arDateSelCls(v){AR.date=v;showAddSelCls(UI.selSubj);}
-function arQSelCls(v){AR.q=v;showAddSelCls(UI.selSubj);}
-function arToggleSel(key){
-  AR.sids=AR.sids.includes(key)?AR.sids.filter(x=>x!==key):[...AR.sids,key];
-  const row=document.getElementById('prsel-'+key);
-  if(row){
-    const sel=AR.sids.includes(key);
-    row.classList.toggle('sel',sel);
-    const chk=row.querySelector('.chk');
-    if(chk){chk.className='chk'+(sel?' on':'');chk.innerHTML=sel?'<span class="chk-tick">✓</span>':'';}
-    const nm=row.querySelector('.pname');if(nm)nm.className='pname'+(sel?' bold':'');
-  }
-  const lbl=document.querySelector('.lbl span[style]');
-  if(lbl)lbl.textContent=AR.sids.length+'명';
-  const btn=document.querySelector('.modal .btn-pri:last-child');
-  if(btn){btn.disabled=!(AR.sids.length>0&&AR.content.trim()&&AR.date);btn.textContent=AR.sids.length>1?AR.sids.length+'명에게 추가':'기록 추가';}
-}
-function arAllSel(){
-  const students=UI._selClsStudents||[];
-  const fstds=AR.q?students.filter(({s})=>s.name.includes(AR.q)||String(s.number).includes(AR.q)):students;
-  AR.sids=fstds.map(({cid,s})=>cid+'__'+s.id);
-  showAddSelCls(UI.selSubj);
-}
-function arClearSel(){AR.sids=[];showAddSelCls(UI.selSubj);}
-function submitSelCls(){
-  const c=document.getElementById('ar-cont');
-  const cont=c?c.value:AR.content;
-  if(!cont.trim()||!AR.sids.length||!AR.date)return;
-  // 각 학생 소속 반에 기록 저장
-  AR.sids.forEach(key=>{
-    const [cid,sid]=key.split('__');
-    addRecords(cid,[sid],{date:AR.date,type:AR.type,content:cont});
-  });
-  closeMd();renderSelCls();
-}
-
 // ────────────────────── CONTACTS VIEW ──────────────────────
 function renderContacts(){
   const q=UI.ctQ||'';
@@ -1609,7 +1444,6 @@ function renderMain(){
   else if(UI.view==='summary')renderSummary();
   else if(UI.view==='allrecs')renderAllRecs();
   else if(UI.view==='contacts')renderContacts();
-  else if(UI.view==='selcls')renderSelCls();
   else renderClassView();
 }
 function render(){renderSidebar();renderMain();}
@@ -1618,20 +1452,13 @@ function render(){renderSidebar();renderMain();}
 function selCls(id){UI={...UI,cid:id,sid:null,view:'class',ft:'전체',fd:'',sq:''};render();}
 function selAllRecs(){UI={...UI,view:'allrecs',sid:null,ft:'전체',fd:''};render();}
 function selContacts(){UI={...UI,view:'contacts',sid:null,ctQ:''};render();}
-function selSelCls(subj){UI={...UI,view:'selcls',selSubj:subj,sid:null,ft:'전체',fd:''};render();}
 function selStats(){UI={...UI,view:'stats',sid:null,ft:'전체',fd:'',sq:''};render();}
 function selSearch(){UI={...UI,view:'search',sid:null,srchQ:'',srchResults:[]};render();}
 function selSummary(){UI.view='summary';render();}
-function selStu(id){UI._prevView=UI.view;UI._prevSelSubj=UI.selSubj;UI.sid=id;UI.view='student';UI.ft='전체';UI.showTt=false;render();}
+function selStu(id){UI._prevView=UI.view;UI.sid=id;UI.view='student';UI.ft='전체';UI.showTt=false;render();}
 function goBack(){
-  const prev=UI._prevView||'class';
   UI.sid=null;UI.ft='전체';UI.showTt=false;
-  if(prev==='selcls'){
-    UI.view='selcls';
-    UI.selSubj=UI._prevSelSubj||UI.selSubj;
-  } else {
-    UI.view='class';
-  }
+  UI.view='class';
   UI._prevView=null;
   render();
 }
@@ -2170,21 +1997,6 @@ function showSettings(){
       <input type="file" id="imp-json" accept=".json" style="display:none" onchange="impJsonF(this.files[0])">
     </div>
     <div class="set-box">
-      <div class="set-title">🎯 선택과목반 설정</div>
-      <div class="set-desc">사이드바에 표시할 담당 선택과목 분반을 선택하세요.</div>
-      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
-        ${getSelSubjects().map(([subj,room])=>{
-          const checked=APP.visibleSelCls.includes(subj);
-          return `<label data-selsubj="${subj}" style="display:flex;align-items:center;gap:4px;cursor:pointer;font-size:12px;font-weight:600;padding:3px 9px;border-radius:6px;background:${checked?'#EDE9FE':'#F3F4F6'};border:1px solid ${checked?'#7C3AED':'#E5E7EB'};color:${checked?'#6D28D9':'#374151'}">
-            <input type="checkbox" ${checked?'checked':''} onchange="toggleSelCls('${subj}',this.checked)" style="display:none">
-            ${subj} <span style="font-weight:400;color:#9CA3AF;font-size:11px">${room}</span></label>`;
-        }).join('')}
-      </div>
-      <div style="display:flex;gap:8px;margin-top:10px">
-        <button class="btn btn-ghost btn-sm" onclick="setAllSelCls(false)">전체 해제</button>
-      </div>
-    </div>
-    <div class="set-box">
       <div class="set-title">📚 수업반 설정</div>
       <div class="set-desc">사이드바에 표시할 수업반을 선택하세요. 담임반은 항상 표시됩니다.</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px">
@@ -2210,22 +2022,6 @@ function showSettings(){
     </div>`,'modal-sm');
 }
 function setHrid(id){APP.hrid=id;saveData();closeMd();render();}
-function toggleSelCls(subj,checked){
-  if(checked){if(!APP.visibleSelCls.includes(subj))APP.visibleSelCls.push(subj);}
-  else{APP.visibleSelCls=APP.visibleSelCls.filter(s=>s!==subj);}
-  saveData();renderSidebar();
-  // 라벨 색상 즉시 업데이트
-  const lbl=[...document.querySelectorAll('label[data-selsubj]')].find(l=>l.dataset.selsubj===subj);
-  if(lbl){
-    lbl.style.background=checked?'#EDE9FE':'#F3F4F6';
-    lbl.style.borderColor=checked?'#7C3AED':'#E5E7EB';
-    lbl.style.color=checked?'#6D28D9':'#374151';
-  }
-}
-function setAllSelCls(all){
-  APP.visibleSelCls=all?getSelSubjects():[];
-  saveData();showSettings();renderSidebar();
-}
 function toggleVisCls(cid,checked){
   const others=APP.classes.filter(c=>c.id!==APP.hrid).map(c=>c.id);
   if(!APP.visibleCls)APP.visibleCls=[...others];
@@ -2370,7 +2166,7 @@ async function anaMode(mode){
     const deptPart=stu.dept?`희망 계열: ${stu.dept}\n`:'';
     ANADATA={loading:true,text:''};showAnalysisResult();
     try{
-      ANADATA.text=(await callAI(`학생: ${stu.name}\n${deptPart}2022 개정교육과정 적용, 2028학년도 대입 기준\n\n활동 기록:\n${txt}\n\n위 기록을 2022 개정교육과정과 2028 대입 학종 평가 관점에서 분석해주세요.\n\n[분석 항목]\n1. 학업역량: 과목 이수 배경, 수업 참여, 탐구 역량, 세특 질 현황 및 보완점\n2. 진로역량: 계열 권장과목 이수 일관성, 진로 탐색 깊이, 과목 선택 스토리\n3. 공동체역량: 공동체 기여 활동 현황 및 보완점\n4. 과정 중심 서사 평가\n5. 2028 대입 대비 우선 보완 활동 추천 (3가지)\n${stu.dept?`\n※ ${stu.dept} 계열 지원 기준으로 분석해주세요.`:''}`,1500)).trim();
+      ANADATA.text=(await callAI(`학생: ${stu.name}\n${deptPart}2022 개정교육과정 적용, 2028학년도 대입 기준\n\n활동 기록:\n${txt}\n\n위 기록을 2022 개정교육과정과 2028 대입 학종 평가 관점에서 분석해주세요.\n\n[분석 제약 조건 — 반드시 준수]\n- 보완 활동 추천은 고등학교 재학 중 실현 가능한 것만 제안하세요\n- 허용: 교내 활동(동아리·봉사·자율·진로), 독서·탐구보고서, 공동교육과정 수강, 대학 연계 수업(교육청 주관)\n- 봉사활동은 교내 봉사 위주로만 언급하세요. 지역사회·사회 기여 등 교외 봉사는 제외\n- 금지: 대학 연구실 인턴, 기업 탐방, 산업체 연계, 해외 활동, 공인 자격증 취득 권고\n\n[분석 항목]\n1. 학업역량: 과목 이수 배경, 수업 참여, 탐구 역량, 세특 질 현황 및 보완점\n2. 진로역량: 계열 권장과목 이수 일관성, 진로 탐색 깊이, 과목 선택 스토리\n3. 공동체역량: 교내 봉사·협력 활동 현황 및 보완점 (교내에서 가능한 활동 중심)\n4. 과정 중심 서사 평가\n5. 2028 대입 대비 우선 보완 활동 추천 3가지 (고교 내 실현 가능한 것만)\n${stu.dept?`\n※ ${stu.dept} 계열 지원 기준으로 분석해주세요.`:''}`,1500)).trim();
     }catch(e){ANADATA.text='오류: '+e.message;}
     ANADATA.loading=false;showAnalysisResult();
   } else {
@@ -2393,7 +2189,7 @@ async function anaUpload(file){
   ANADATA={loading:true,text:''};showAnalysisResult();
   try{
     const b64=await new Promise((ok,fail)=>{const r=new FileReader();r.onload=()=>ok(r.result.split(',')[1]);r.onerror=fail;r.readAsDataURL(file);});
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':APP.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},{type:'text',text:`학생: ${stu.name}\n${deptPart}2022 개정교육과정 적용, 2028학년도 대입 기준\\n[2022 개정 과목명 기준] 수학: 공통수학1·2/대수·미적분Ⅰ·확률과통계/미적분Ⅱ·기하·실용통계 | 과학: 통합과학1·2/물리학·화학·생명과학·지구과학(일반선택)/역학과에너지·전자기와양자·물질과에너지·화학반응의세계·세포와물질대사·생명의유전·지구시스템과학·행성우주과학(진로선택) | 사회: 통합사회1·2/한국지리탐구·세계지리탐구·세계사·한국사1·2·정치·사회와문화 | ※화학Ⅰ/Ⅱ, 물리학Ⅰ/Ⅱ 등 2015 과목명 절대 사용금지\n\n이 학교생활기록부를 2022 개정교육과정과 2028 대입 학종 평가 관점에서 분석해주세요.\n\n[분석 기준 안내]\n- 2028 대입은 내신 5등급제 도입으로 정성 평가 비중이 강화됩니다\n- 고교학점제 기반 계열별 권장과목 이수 여부가 핵심 변수입니다\n- 세특은 학기 단위, 실제 탐구 역량·수업 참여 중심으로 평가됩니다\n- 공동체역량은 단순 봉사·배려에서 공동체 기여 활동 중심으로 재편됩니다\n\n[분석 항목]\n1. 학업역량: 과목 이수 배경·수업 참여·탐구 역량·세특 질 현황 및 보완점\n2. 진로역량: 계열 권장과목 이수 일관성, 진로 탐색 깊이, 과목 선택 스토리 현황 및 보완점\n3. 공동체역량: 공동체 기여 활동 현황 및 보완점 (기여의 질 중심)\n4. 생기부 항목별 강약점 분석 (세특/자율/진로/행특 각각)\n5. 과정 중심 서사 평가: 활동들이 하나의 진로 스토리로 연결되는지\n6. 2028 대입 대비 우선 보완 전략 (5가지 — 과목 선택 추천 제외)\n${stu.dept?`\n※ ${stu.dept}dept} 계열 지원 기준으로 분석해주세요.`:''}`}]}]})});
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':APP.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},{type:'text',text:`학생: ${stu.name}\n${deptPart}2022 개정교육과정 적용, 2028학년도 대입 기준\\n[2022 개정 과목명 기준] 수학: 공통수학1·2/대수·미적분Ⅰ·확률과통계/미적분Ⅱ·기하·실용통계 | 과학: 통합과학1·2/물리학·화학·생명과학·지구과학(일반선택)/역학과에너지·전자기와양자·물질과에너지·화학반응의세계·세포와물질대사·생명의유전·지구시스템과학·행성우주과학(진로선택) | 사회: 통합사회1·2/한국지리탐구·세계지리탐구·세계사·한국사1·2·정치·사회와문화 | ※화학Ⅰ/Ⅱ, 물리학Ⅰ/Ⅱ 등 2015 과목명 절대 사용금지\n\n이 학교생활기록부를 2022 개정교육과정과 2028 대입 학종 평가 관점에서 분석해주세요.\n\n[분석 기준 안내]\n- 2028 대입은 내신 5등급제 도입으로 정성 평가 비중이 강화됩니다\n- 고교학점제 기반 계열별 권장과목 이수 여부가 핵심 변수입니다\n- 세특은 학기 단위, 실제 탐구 역량·수업 참여 중심으로 평가됩니다\n- 공동체역량은 단순 봉사·배려에서 공동체 기여 활동 중심으로 재편됩니다\n\n[분석 항목]\n1. 학업역량: 과목 이수 배경·수업 참여·탐구 역량·세특 질 현황 및 보완점\n2. 진로역량: 계열 권장과목 이수 일관성, 진로 탐색 깊이, 과목 선택 스토리 현황 및 보완점\n3. 공동체역량: 공동체 기여 활동 현황 및 보완점 (기여의 질 중심)\n4. 생기부 항목별 강약점 분석 (세특/자율/진로/행특 각각)\n5. 과정 중심 서사 평가: 활동들이 하나의 진로 스토리로 연결되는지\n6. 2028 대입 대비 우선 보완 전략 (5가지 — 고교 내 실현 가능한 것만, 과목 선택 추천 제외)\n[제약] 봉사는 교내 봉사만, 대학 인턴·산업체 연계·해외 활동 금지\n${stu.dept?`\n※ ${stu.dept} 계열 지원 기준으로 분석해주세요.`:''}`}]}]})});
     const d=await res.json();ANADATA.text=(d.content[0].text||'').trim();
   }catch(e){ANADATA.text='오류: '+e.message;}
   ANADATA.loading=false;showAnalysisResult();
@@ -2560,7 +2356,7 @@ auth.onAuthStateChanged(async(user)=>{
   } else {
     _uid=null;
     _currentUser=null;
-    APP={classes:ALL_CLS,students:{},records:{},hrid:'c7',apiKey:'',todos:{},contacts:{},visibleCls:null,visibleSelCls:[]};
+    APP={classes:ALL_CLS,students:{},records:{},hrid:'c7',apiKey:'',todos:{},contacts:{},visibleCls:null};
     loginScreen.style.display='flex';
     appEl.style.display='none';
   }
