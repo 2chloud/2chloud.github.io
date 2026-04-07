@@ -481,7 +481,7 @@ const TYPE_LINK='연결됨';
 const TYPES_SB=['자율','진로','행동특성','동아리','상담메모','교과','학종분석'];
 
 // ────────────────────── APP STATE ──────────────────────
-let APP={classes:ALL_CLS, students:{}, records:{}, hrid:'c7', apiKey:'', geminiKey:'', todos:{}, contacts:{}, visibleCls:null, menstrual:{}};
+let APP={classes:ALL_CLS, students:{}, records:{}, hrid:'c7', apiKey:'', todos:{}, contacts:{}, visibleCls:null, menstrual:{}};
 let UI={cid:'c7', sid:null, view:'class', ft:'전체', fd:'', sq:'', modal:null, fdOpen:false, calYM:'', srchQ:'', srchResults:[], ttStu:'', showTt:false, ctQ:''};
 let AR={type:'', date:'', content:'', sids:[], q:''};
 let FU={step:'upload', items:[], fname:'', err:'', forceType:'', date:''};
@@ -533,7 +533,7 @@ async function loadData(){
     if(doc.exists){
       const d=doc.data();
       APP.students=d.students||{};APP.records=d.records||{};
-      APP.hrid=d.hrid||'c7';APP.apiKey=d.apiKey||'';APP.geminiKey=d.geminiKey||'';
+      APP.hrid=d.hrid||'c7';APP.apiKey=d.apiKey||'';
       APP.todos=d.todos||{};APP.contacts=d.contacts||{};
       APP.visibleCls=d.visibleCls||null;APP.menstrual=d.menstrual||{};
     }
@@ -551,7 +551,7 @@ async function saveData(){
   if(!_uid)return;
   try{
     await db.collection('users').doc(_uid).set({
-      students:APP.students,records:APP.records,hrid:APP.hrid,apiKey:APP.apiKey,geminiKey:APP.geminiKey||'',
+      students:APP.students,records:APP.records,hrid:APP.hrid,apiKey:APP.apiKey,
       todos:APP.todos,contacts:APP.contacts,
       visibleCls:APP.visibleCls||null,menstrual:APP.menstrual||{}
     },{merge:true});
@@ -718,8 +718,8 @@ function renderClassView(){
       <button class="btn btn-sec btn-sm" onclick="openMd('import')">📋 명단 업로드</button>
       <button class="btn btn-sec btn-sm" onclick="ctUpload()">📞 연락처 업로드</button>
       <button class="btn btn-sec btn-sm" onclick="openMd('addOne')">+ 학생 추가</button>
-      <button class="btn btn-sec btn-sm" onclick="requireApi(()=>openMd('file'))" style="${APP.apiKey||APP.geminiKey?'':'opacity:.45'}">
-        ${APP.apiKey||APP.geminiKey?'📄 파일 업로드':'🔒 파일 업로드'}
+      <button class="btn btn-sec btn-sm" onclick="requireApi(()=>openMd('file'))" style="${APP.apiKey?'':'opacity:.45'}">
+        ${APP.apiKey?'📄 파일 업로드':'🔒 파일 업로드'}
       </button>
       <button class="btn btn-sec btn-sm" onclick="openMd('role')">🎖 역할 관리</button>
       <button class="btn btn-sec btn-sm" onclick="selAllRecs()">📋 전체 기록 보기</button>
@@ -810,11 +810,11 @@ function renderStudentView(){
         <button class="btn${UI.showTt?' btn-pri':' btn-sec'} btn-sm" onclick="toggleTt()">🗓 시간표</button>
         <button class="btn btn-sec btn-sm" onclick="exportStuXlsx()">↓ 엑셀</button>
         <button class="btn btn-sec btn-sm" onclick="openMenstrual('${UI.sid}')" title="생리결석 현황" style="font-size:15px;padding:4px 9px">🟣</button>
-        <button class="btn btn-sec btn-sm" onclick="requireApi(()=>openMd('draft'))" style="${APP.apiKey||APP.geminiKey?'':'opacity:.45'}">
-          ${APP.apiKey||APP.geminiKey?'✦ 생기부 초안':'🔒 생기부 초안'}
+        <button class="btn btn-sec btn-sm" onclick="requireApi(()=>openMd('draft'))" style="${APP.apiKey?'':'opacity:.45'}">
+          ${APP.apiKey?'✦ 생기부 초안':'🔒 생기부 초안'}
         </button>
-        ${cls.id===APP.hrid?`<button class="btn btn-sec btn-sm" onclick="requireApi(()=>openMd('analysis'))" style="${APP.apiKey||APP.geminiKey?'':'opacity:.45'}">
-          ${APP.apiKey||APP.geminiKey?'🔍 학종 분석':'🔒 학종 분석'}
+        ${cls.id===APP.hrid?`<button class="btn btn-sec btn-sm" onclick="requireApi(()=>openMd('analysis'))" style="${APP.apiKey?'':'opacity:.45'}">
+          ${APP.apiKey?'🔍 학종 분석':'🔒 학종 분석'}
         </button>`:''}
         <button class="btn btn-pri btn-sm" onclick="openMd('add')">+ 기록 추가</button>
       </div>
@@ -2005,21 +2005,11 @@ function showSettings(){
     <div class="set-box">
       <div class="set-title">🔑 AI API 키 설정</div>
       <div class="set-desc">둘 중 하나만 입력하면 됩니다. 둘 다 있으면 Claude 우선.</div>
-      <div style="margin-bottom:10px">
-        <div class="lbl" style="margin-bottom:4px">Claude (Anthropic) <span style="font-size:11px;color:var(--soft)">${APP.apiKey?'✓ 입력됨':'미입력'}</span></div>
-        <div style="display:flex;gap:7px">
-          <input id="api-key-inp" class="inp" type="password" placeholder="sk-ant-api03-..." style="flex:1;font-size:12px" value="${APP.apiKey}">
-          <button class="btn btn-pri btn-sm" onclick="saveApiKey()">저장</button>
-          ${APP.apiKey?`<button class="btn btn-ghost btn-sm" onclick="clearApiKey()">삭제</button>`:''}
-        </div>
-      </div>
-      <div>
-        <div class="lbl" style="margin-bottom:4px">Gemini (Google) <span style="font-size:11px;color:var(--soft)">${APP.geminiKey?'✓ 입력됨':'미입력'}</span></div>
-        <div style="display:flex;gap:7px">
-          <input id="gemini-key-inp" class="inp" type="password" placeholder="AIza..." style="flex:1;font-size:12px" value="${APP.geminiKey||''}">
-          <button class="btn btn-pri btn-sm" onclick="saveGeminiKey()">저장</button>
-          ${APP.geminiKey?`<button class="btn btn-ghost btn-sm" onclick="clearGeminiKey()">삭제</button>`:''}
-        </div>
+      <div class="lbl" style="margin-bottom:6px">Claude (Anthropic) API 키 <span style="font-size:11px;color:var(--soft)">${APP.apiKey?'✓ 입력됨':'미입력'}</span></div>
+      <div style="display:flex;gap:7px">
+        <input id="api-key-inp" class="inp" type="password" placeholder="sk-ant-api03-..." style="flex:1;font-size:12px" value="${APP.apiKey}">
+        <button class="btn btn-pri btn-sm" onclick="saveApiKey()">저장</button>
+        ${APP.apiKey?`<button class="btn btn-ghost btn-sm" onclick="clearApiKey()">삭제</button>`:''}
       </div>
     </div>
     <div class="set-box">
@@ -2098,8 +2088,6 @@ function saveApiKey(){
   APP.apiKey=v;saveData();showSettings();
 }
 function clearApiKey(){APP.apiKey='';saveData();showSettings();}
-function saveGeminiKey(){const v=(document.getElementById('gemini-key-inp').value||'').trim();APP.geminiKey=v;saveData();showSettings();}
-function clearGeminiKey(){APP.geminiKey='';saveData();showSettings();}
 function impJsonF(file){
   const r=new FileReader();r.onload=e=>{
     try{const d=JSON.parse(e.target.result);APP.students=d.students||{};APP.records=d.records||{};APP.contacts=d.contacts||{};APP.menstrual=d.menstrual||{};APP.visibleCls=d.visibleCls||null;if(d.hrid)APP.hrid=d.hrid;saveData();closeMd();render();alert('불러오기 완료!');}
@@ -2434,7 +2422,7 @@ function saveEdit(){
 
 // ── API 키 필요 안내 ─────────────────────────────────────────
 function requireApi(fn){
-  if(APP.apiKey||APP.geminiKey){fn();return;}
+  if(APP.apiKey){fn();return;}
   // 토스트 메시지
   const t=document.createElement('div');
   t.style.cssText='position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#1A2535;color:#E8F2FA;padding:11px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;display:flex;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1)';
@@ -2504,27 +2492,15 @@ function delMenstrual(cid,sid,ym){
 
 // ── AI 호출 헬퍼 (Claude 우선, 없으면 Gemini) ────────────────────
 async function callAI(prompt, maxTokens=1000){
-  if(APP.apiKey){
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':APP.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})
-    });
-    const d=await res.json();
-    if(d.content?.[0]?.text)return d.content[0].text;
-    throw new Error(d.error?.message||'Claude API 오류');
-  } else if(APP.geminiKey){
-    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${APP.geminiKey}`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:maxTokens}})
-    });
-    const d=await res.json();
-    if(d.candidates?.[0]?.content?.parts?.[0]?.text)return d.candidates[0].content.parts[0].text;
-    throw new Error(d.error?.message||'Gemini API 오류');
-  } else {
-    throw new Error('API 키가 없습니다. ⚙ 설정에서 Claude 또는 Gemini API 키를 입력해주세요.');
-  }
+  if(!APP.apiKey)throw new Error('API 키가 없습니다. ⚙ 설정에서 Claude API 키를 입력해주세요.');
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':APP.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})
+  });
+  const d=await res.json();
+  if(d.content?.[0]?.text)return d.content[0].text;
+  throw new Error(d.error?.message||'Claude API 오류');
 }
 
 // ── Auth 함수 ──────────────────────────────────────────────────
