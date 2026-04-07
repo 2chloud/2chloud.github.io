@@ -2423,4 +2423,93 @@ function openMenstrual(sid){
   const body=`
     <div style="padding:4px 0 12px;color:var(--muted);font-size:12px">🟣 생리결석 사용 현황 — ${esc(stu.name)}</div>
     ${rows}
-    <div c
+    <div class="modal-foot"><button class="btn btn-sec" onclick="closeMd()">닫기</button></div>`;
+  wrapMd(esc(stu.name)+' — 생리결석', body);
+}
+function editMenstrual(cid,sid,ym){
+  const data=APP.menstrual[cid+'__'+sid]||{};
+  const existing=data[ym]?.date||'';
+  const month=ym.slice(5)+'월';
+  const body=`
+    <div style="margin-bottom:14px;font-size:13px;color:var(--muted)">${month} 생리결석 날짜를 입력하세요 (선택)</div>
+    <div class="field"><div class="lbl">날짜 (일)</div>
+      <input class="inp" id="mens-date" type="number" min="1" max="31" placeholder="예: 15" value="${existing}" style="width:120px">
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-sec" onclick="openMenstrual('${sid}')">← 뒤로</button>
+      <button class="btn btn-pri" onclick="saveMenstrual('${cid}','${sid}','${ym}')">저장</button>
+    </div>`;
+  wrapMd('생리결석 입력', body);
+}
+function saveMenstrual(cid,sid,ym){
+  const dateVal=document.getElementById('mens-date')?.value?.trim()||'';
+  if(!APP.menstrual[cid+'__'+sid])APP.menstrual[cid+'__'+sid]={};
+  APP.menstrual[cid+'__'+sid][ym]={date:dateVal,at:Date.now()};
+  saveData();openMenstrual(sid);
+}
+function delMenstrual(cid,sid,ym){
+  if(!APP.menstrual[cid+'__'+sid])return;
+  delete APP.menstrual[cid+'__'+sid][ym];
+  saveData();openMenstrual(sid);
+}
+
+// ── AI 호출 헬퍼 (Claude 우선, 없으면 Gemini) ────────────────────
+async function callAI(prompt, maxTokens=1000){
+  if(APP.apiKey){
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':APP.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})
+    });
+    const d=await res.json();
+    if(d.content?.[0]?.text)return d.content[0].text;
+    throw new Error(d.error?.message||'Claude API 오류');
+  } else if(APP.geminiKey){
+    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${APP.geminiKey}`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:maxTokens}})
+    });
+    const d=await res.json();
+    if(d.candidates?.[0]?.content?.parts?.[0]?.text)return d.candidates[0].content.parts[0].text;
+    throw new Error(d.error?.message||'Gemini API 오류');
+  } else {
+    throw new Error('API 키가 없습니다. ⚙ 설정에서 Claude 또는 Gemini API 키를 입력해주세요.');
+  }
+}
+
+// ── Auth 함수 ──────────────────────────────────────────────────
+async function signInWithGoogle(){
+  const provider=new firebase.auth.GoogleAuthProvider();
+  try{await auth.signInWithPopup(provider);}
+  catch(e){console.error('로그인 실패',e);alert('로그인에 실패했습니다.');}
+}
+async function doSignOut(){
+  if(!confirm('로그아웃하시겠습니까?'))return;
+  try{await auth.signOut();}catch(e){console.error(e);}
+}
+
+// ── Auth 상태 감지 ─────────────────────────────────────────────
+auth.onAuthStateChanged(async(user)=>{
+  const loginScreen=document.getElementById('login-screen');
+  const appEl=document.getElementById('app');
+  if(user){
+    _uid=user.uid;
+    _currentUser=user;
+    loginScreen.style.display='none';
+    appEl.style.display='flex';
+    await loadData();
+    UI.cid=APP.hrid||'c7';
+    render();
+    checkFirstVisit();
+  } else {
+    _uid=null;
+    _currentUser=null;
+    APP={classes:ALL_CLS,students:{},records:{},hrid:'c7',apiKey:'',todos:{},contacts:{},visibleCls:null};
+    loginScreen.style.display='flex';
+    appEl.style.display='none';
+  }
+});
+</script>
+</body>
+</html>
