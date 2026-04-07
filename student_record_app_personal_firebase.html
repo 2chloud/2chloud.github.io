@@ -2004,7 +2004,7 @@ function showSettings(){
   wrapMd('데이터 관리',`
     <div class="set-box">
       <div class="set-title">🔑 AI API 키 설정</div>
-      <div class="set-desc">둘 중 하나만 입력하면 됩니다. 둘 다 있으면 Claude 우선.</div>
+      <div class="set-desc">Claude API 키 입력.</div>
       <div class="lbl" style="margin-bottom:6px">Claude (Anthropic) API 키 <span style="font-size:11px;color:var(--soft)">${APP.apiKey?'✓ 입력됨':'미입력'}</span></div>
       <div style="display:flex;gap:7px">
         <input id="api-key-inp" class="inp" type="password" placeholder="sk-ant-api03-..." style="flex:1;font-size:12px" value="${APP.apiKey}">
