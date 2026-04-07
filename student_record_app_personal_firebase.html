@@ -481,7 +481,7 @@ const TYPE_LINK='연결됨';
 const TYPES_SB=['자율','진로','행동특성','동아리','상담메모','교과','학종분석'];
 
 // ────────────────────── APP STATE ──────────────────────
-let APP={classes:ALL_CLS, students:{}, records:{}, hrid:'c7', apiKey:'', geminiKey:'', todos:{}, contacts:{}, visibleCls:null};
+let APP={classes:ALL_CLS, students:{}, records:{}, hrid:'c7', apiKey:'', geminiKey:'', todos:{}, contacts:{}, visibleCls:null, menstrual:{}};
 let UI={cid:'c7', sid:null, view:'class', ft:'전체', fd:'', sq:'', modal:null, fdOpen:false, calYM:'', srchQ:'', srchResults:[], ttStu:'', showTt:false, ctQ:''};
 let AR={type:'', date:'', content:'', sids:[], q:''};
 let FU={step:'upload', items:[], fname:'', err:'', forceType:'', date:''};
@@ -535,7 +535,7 @@ async function loadData(){
       APP.students=d.students||{};APP.records=d.records||{};
       APP.hrid=d.hrid||'c7';APP.apiKey=d.apiKey||'';APP.geminiKey=d.geminiKey||'';
       APP.todos=d.todos||{};APP.contacts=d.contacts||{};
-      APP.visibleCls=d.visibleCls||null;
+      APP.visibleCls=d.visibleCls||null;APP.menstrual=d.menstrual||{};
     }
   }catch(e){console.warn('loadData error',e);}
   // seed students if empty
@@ -693,7 +693,7 @@ function renderSidebar(){
         <span class="sb-link-icon">📓</span>노트북LM
       </button>
       <button class="sb-link-btn" onclick="window.open('http://kwangju-g.gen.hs.kr/main/main.php','_blank')">
-        <span class="sb-link-icon">🏢</span>학교누리집
+        <span class="sb-link-icon">🏢</span>학교 홈페이지
       </button>
     </div>
   </div>`;
@@ -804,6 +804,7 @@ function renderStudentView(){
         <button class="btn btn-sec btn-sm" onclick="selSummary()">📄 요약 카드</button>
         <button class="btn${UI.showTt?' btn-pri':' btn-sec'} btn-sm" onclick="toggleTt()">🗓 시간표</button>
         <button class="btn btn-sec btn-sm" onclick="exportStuXlsx()">↓ 엑셀</button>
+        <button class="btn btn-sec btn-sm" onclick="openMenstrual('${UI.sid}')" title="생리결석 현황" style="font-size:15px;padding:4px 9px">🟣</button>
         <button class="btn btn-sec btn-sm" onclick="openMd('draft')">✦ 생기부 초안</button>
         ${cls.id===APP.hrid?`<button class="btn btn-sec btn-sm" onclick="openMd('analysis')">🔍 학종 분석</button>`:''}
         <button class="btn btn-pri btn-sm" onclick="openMd('add')">+ 기록 추가</button>
@@ -2319,6 +2320,66 @@ function saveEdit(){
 }
 // ── Firebase 초기화 ──────────────────────────────────────────
 
+
+// ── 생리결석 관리 ────────────────────────────────────────────
+function openMenstrual(sid){
+  const cid=UI.cid;
+  const stu=getStds(cid).find(s=>s.id===sid);
+  if(!stu)return;
+  const data=APP.menstrual[cid+'__'+sid]||{};
+  // 월 목록: 3월~현재월 + 1
+  const months=[];
+  const now=new Date();
+  for(let m=3;m<=now.getMonth()+2;m++){
+    const key=`2026-${String(m).padStart(2,'0')}`;
+    months.push(key);
+  }
+  const rows=months.map(ym=>{
+    const entry=data[ym];
+    const label=ym.slice(5)+'월';
+    const used=!!entry;
+    const dateStr=entry&&entry.date?entry.date:'';
+    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+      <span style="width:36px;font-size:13px;font-weight:700;color:${used?'#7C3AED':'var(--soft)'}">${label}</span>
+      <span style="flex:1;font-size:13px;color:${used?'var(--text)':'var(--soft)'}">${used?(dateStr?dateStr+'일':'날짜 미입력'):'미사용'}</span>
+      <button class="btn btn-sm" style="background:${used?'#EDE9FE':'#F3F4F6'};color:${used?'#7C3AED':'var(--muted)'};border:1px solid ${used?'#C4B5FD':'#E5E7EB'}" onclick="editMenstrual('${cid}','${sid}','${ym}')">
+        ${used?'✓ 수정':'+ 입력'}
+      </button>
+      ${used?`<button class="btn btn-sm" style="color:var(--red);background:none;border:none" onclick="delMenstrual('${cid}','${sid}','${ym}')">×</button>`:''}
+    </div>`;
+  }).join('');
+  const body=`
+    <div style="padding:4px 0 12px;color:var(--muted);font-size:12px">🟣 생리결석 사용 현황 — ${esc(stu.name)}</div>
+    ${rows}
+    <div class="modal-foot"><button class="btn btn-sec" onclick="closeMd()">닫기</button></div>`;
+  wrapMd(esc(stu.name)+' — 생리결석', body);
+}
+function editMenstrual(cid,sid,ym){
+  const data=APP.menstrual[cid+'__'+sid]||{};
+  const existing=data[ym]?.date||'';
+  const month=ym.slice(5)+'월';
+  const body=`
+    <div style="margin-bottom:14px;font-size:13px;color:var(--muted)">${month} 생리결석 날짜를 입력하세요 (선택)</div>
+    <div class="field"><div class="lbl">날짜 (일)</div>
+      <input class="inp" id="mens-date" type="number" min="1" max="31" placeholder="예: 15" value="${existing}" style="width:120px">
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-sec" onclick="openMenstrual('${sid}')">← 뒤로</button>
+      <button class="btn btn-pri" onclick="saveMenstrual('${cid}','${sid}','${ym}')">저장</button>
+    </div>`;
+  wrapMd('생리결석 입력', body);
+}
+function saveMenstrual(cid,sid,ym){
+  const dateVal=document.getElementById('mens-date')?.value?.trim()||'';
+  if(!APP.menstrual[cid+'__'+sid])APP.menstrual[cid+'__'+sid]={};
+  APP.menstrual[cid+'__'+sid][ym]={date:dateVal,at:Date.now()};
+  saveData();openMenstrual(sid);
+}
+function delMenstrual(cid,sid,ym){
+  if(!APP.menstrual[cid+'__'+sid])return;
+  delete APP.menstrual[cid+'__'+sid][ym];
+  saveData();openMenstrual(sid);
+}
 
 // ── AI 호출 헬퍼 (Claude 우선, 없으면 Gemini) ────────────────────
 async function callAI(prompt, maxTokens=1000){
