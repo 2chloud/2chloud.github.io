@@ -553,7 +553,7 @@ async function saveData(){
     await db.collection('users').doc(_uid).set({
       students:APP.students,records:APP.records,hrid:APP.hrid,apiKey:APP.apiKey,geminiKey:APP.geminiKey||'',
       todos:APP.todos,contacts:APP.contacts,
-      visibleCls:APP.visibleCls||null
+      visibleCls:APP.visibleCls||null,menstrual:APP.menstrual||{}
     },{merge:true});
   }catch(e){console.warn('saveData error',e);}
 }
@@ -693,7 +693,7 @@ function renderSidebar(){
         <span class="sb-link-icon">📓</span>노트북LM
       </button>
       <button class="sb-link-btn" onclick="window.open('http://kwangju-g.gen.hs.kr/main/main.php','_blank')">
-        <span class="sb-link-icon">🏢</span>학교누리집
+        <span class="sb-link-icon">🏢</span>학교 누리집
       </button>
     </div>
   </div>`;
