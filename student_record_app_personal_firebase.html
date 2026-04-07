@@ -2004,7 +2004,7 @@ function showSettings(){
   wrapMd('데이터 관리',`
     <div class="set-box">
       <div class="set-title">🔑 AI API 키 설정</div>
-      <div class="set-desc">Claude API 키 입력.</div>
+      <div class="set-desc">둘 중 하나만 입력하면 됩니다. 둘 다 있으면 Claude 우선.</div>
       <div class="lbl" style="margin-bottom:6px">Claude (Anthropic) API 키 <span style="font-size:11px;color:var(--soft)">${APP.apiKey?'✓ 입력됨':'미입력'}</span></div>
       <div style="display:flex;gap:7px">
         <input id="api-key-inp" class="inp" type="password" placeholder="sk-ant-api03-..." style="flex:1;font-size:12px" value="${APP.apiKey}">
@@ -2305,7 +2305,8 @@ async function anaUpload(file){
   ANADATA={loading:true,text:''};showAnalysisResult();
   try{
     const b64=await new Promise((ok,fail)=>{const r=new FileReader();r.onload=()=>ok(r.result.split(',')[1]);r.onerror=fail;r.readAsDataURL(file);});
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':APP.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:2000,messages:[{role:'user',content:[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},{type:'text',text:`학생: ${stu.name}\n${deptPart}2022 개정교육과정 적용, 2028학년도 대입 기준\\n[2022 개정 과목명 기준] 수학: 공통수학1·2/대수·미적분Ⅰ·확률과통계/미적분Ⅱ·기하·실용통계 | 과학: 통합과학1·2/물리학·화학·생명과학·지구과학(일반선택)/역학과에너지·전자기와양자·물질과에너지·화학반응의세계·세포와물질대사·생명의유전·지구시스템과학·행성우주과학(진로선택) | 사회: 통합사회1·2/한국지리탐구·세계지리탐구·세계사·한국사1·2·정치·사회와문화 | ※화학Ⅰ/Ⅱ, 물리학Ⅰ/Ⅱ 등 2015 과목명 절대 사용금지\n\n이 학교생활기록부를 2022 개정교육과정과 2028 대입 학종 평가 관점에서 분석해주세요.\n\n[분석 기준 안내]\n- 2028 대입은 내신 5등급제 도입으로 정성 평가 비중이 강화됩니다\n- 고교학점제 기반 계열별 권장과목 이수 여부가 핵심 변수입니다\n- 세특은 학기 단위, 실제 탐구 역량·수업 참여 중심으로 평가됩니다\n- 공동체역량은 단순 봉사·배려에서 공동체 기여 활동 중심으로 재편됩니다\n\n[분석 항목]\n1. 학업역량: 과목 이수 배경·수업 참여·탐구 역량·세특 질 현황 및 보완점\n2. 진로역량: 계열 권장과목 이수 일관성, 진로 탐색 깊이, 과목 선택 스토리 현황 및 보완점\n3. 공동체역량: 공동체 기여 활동 현황 및 보완점 (기여의 질 중심)\n4. 생기부 항목별 강약점 분석 (세특/자율/진로/행특 각각)\n5. 과정 중심 서사 평가: 활동들이 하나의 진로 스토리로 연결되는지\n6. 2028 대입 대비 우선 보완 전략 (5가지 — 고교 내 실현 가능한 것만, 과목 선택 추천 제외)\n[제약] 봉사는 교내 봉사만, 대학 인턴·산업체 연계·해외 활동 금지\n${stu.dept?`\n※ ${stu.dept} 계열 지원 기준으로 분석해주세요.`:''}`}]}]})});
+    const _prompt=`너는 학생부종합전형, 학생부교과전형, 2022 개정교육과정, 2028학년도 대입을 이해하는 진로진학 전문 교사다.\n\n지금부터 업로드된 학생의 학교생활기록부를 분석해 줘.\n\n[분석 대상 조건]\n- 학생 이름: ${stu.name}\n${deptPart}- 대상 학생은 2026학년도 고등학교 2학년이며, 2022 개정교육과정 적용 학생이다.\n- 현재 시점은 고2 1학기이므로 학교생활기록부에는 1학년 내용만 있다고 가정한다.\n- 2학년 기록이 없다는 점을 반영하여, 현재까지 드러난 경향과 2학년 보완 방향 중심으로 분석한다.\n- 분석 기준은 2028학년도 대학입학을 준비하는 관점으로 설정한다.\n- 특정 대학 단정이 아니라 학생부종합전형 공통 평가요소 중심으로 분석한다.\n\n[중요 분석 원칙]\n1. 학생부에 실제로 드러난 내용만 근거로 판단하고, 근거 없는 추정은 하지 마라.\n2. 기록이 부족한 항목은 약점이라고 단정하지 말고 근거 부족 또는 추가 확인 필요로 표현하라.\n3. 희망 계열이 입력되어 있으면 그 기준으로 진로역량을 분석하라.\n4. 희망 계열이 없으면 학생부에 드러난 활동, 과목, 세특 내용을 바탕으로 잠재 관심 계열 후보를 1~3개 제시하라.\n5. 현재 수준의 평가와 함께 2학년에서 어떻게 보완하면 좋을지 구체적으로 제안하라.\n6. 결과는 칭찬 위주 요약이 아니라 입시 상담용으로 냉정하고 구체적으로 작성하라.\n7. 학생의 가능성을 과소평가하지 말고, 강점은 강점대로 분명하게 제시하라.\n8. 세특, 창체, 행동특성 및 종합의견 사이의 연결성을 보고 과정 중심 서사가 있는지 평가하라.\n9. 분석 내용은 추상적으로 쓰지 말고 반드시 학생부 항목을 근거로 설명하라.\n10. 가능한 경우 현재 인상 → 왜 그렇게 보이는지 → 2학년에서 무엇을 해야 하는지 순서로 서술하라.\n\n[보완 활동 제약]\n- 보완 활동 추천은 고등학교 재학 중 실현 가능한 것만 제안하라.\n- 허용: 교내 활동(동아리·봉사·자율·진로), 독서·탐구보고서, 공동교육과정, 대학 연계 수업(교육청 주관)\n- 봉사활동은 교내 봉사만. 대학 인턴·산업체 연계·해외 활동 금지.\n\n[출력 형식]\n1. 학업역량 (강점 / 보완 필요한 점 / 판단 근거)\n2. 진로역량 (강점 / 보완 필요한 점 / 판단 근거 / 희망 계열 미입력 시 잠재 관심 계열 후보)\n3. 공동체역량 (강점 / 보완 필요한 점 / 판단 근거)\n4. 생기부 항목별 장단점 — 교과성적·교과세특·자율활동·진로활동·행동특성및종합의견 각각: 장점·아쉬운점·입시에주는의미\n5. 과정 중심 서사 평가 — 핵심 키워드·서사 일관성·이어지는 지점과 끊기는 지점·2학년 방향\n6. 2028 대입 대비 2학년 우선 보완 전략 1~5순위 — 각각: 왜중요한지·어떻게실행할지·생기부반영방식\n7. 종합평가 — 전체 평가·학종 경쟁력·교과전형 해석·개선 포인트\n8. 한줄 총평\n\n[문체] 교사의 상담 보고서처럼, 과장 없이 명확하게, 이유를 반드시 설명할 것.`;
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':APP.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:4000,messages:[{role:'user',content:[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},{type:'text',text:_prompt}]}]})});
     const d=await res.json();ANADATA.text=(d.content[0].text||'').trim();
   }catch(e){ANADATA.text='오류: '+e.message;}
   ANADATA.loading=false;showAnalysisResult();
@@ -2518,7 +2519,7 @@ function delMenstrual(cid,sid,ym){
   saveData();openMenstrual(sid);
 }
 
-// ── AI 호출 헬퍼 (Claude) ────────────────────
+// ── AI 호출 헬퍼 (Claude 우선, 없으면 Gemini) ────────────────────
 async function callAI(prompt, maxTokens=1000){
   if(!APP.apiKey)throw new Error('API 키가 없습니다. ⚙ 설정에서 Claude API 키를 입력해주세요.');
   const res=await fetch('https://api.anthropic.com/v1/messages',{
