@@ -486,7 +486,7 @@ let UI={cid:'c7', sid:null, view:'class', ft:'전체', fd:'', sq:'', modal:null,
 let AR={type:'', date:'', content:'', sids:[], q:''};
 let FU={step:'upload', items:[], fname:'', err:'', forceType:'', date:''};
 let IMP={preview:null, err:''};
-let DR={tab:'', text:'', loading:false};
+let DR={tab:'', tabs:[], text:'', loading:false, selectedRecs:[]};
 let ANADATA=null;
 
 // ────────────────────── UTILS ──────────────────────
@@ -693,7 +693,7 @@ function renderSidebar(){
         <span class="sb-link-icon">📓</span>노트북LM
       </button>
       <button class="sb-link-btn" onclick="window.open('http://kwangju-g.gen.hs.kr/main/main.php','_blank')">
-        <span class="sb-link-icon">🏢</span>학교누리집
+        <span class="sb-link-icon">🏢</span>학교 홈페이지
       </button>
     </div>
   </div>`;
@@ -1538,7 +1538,7 @@ function drawModal(){
   else if(m==='import')showImport();
   else if(m==='addOne')showAddOne();
   else if(m==='settings')showSettings();
-  else if(m==='draft')showDraft();
+  else if(m==='draft'){DR.tabs=[];DR.selectedRecs=[];DR.text='';DR.loading=false;showDraft();}
   else if(m==='analysis')showAnalysis();
 }
 function wrapMd(title,body,sz=''){
@@ -2071,31 +2071,103 @@ function impJsonF(file){
 // ────────────────────── DRAFT ──────────────────────
 function showDraft(){
   const cls=getCls();
-  const tabs=cls?.hr?['세특','자율활동','진로활동','행동특성']:['세특'];
-  if(!DR.tab||!tabs.includes(DR.tab))DR.tab=tabs[0];
-  const tabHtml=tabs.map(t=>`<button class="tab${DR.tab===t?' on':''}" onclick="drTab('${t}')">${t}</button>`).join('');
-  let inner=DR.loading
-    ?`<div class="ai-loading"><div style="font-size:24px;margin-bottom:10px">✦</div><div>초안 생성 중...</div></div>`
-    :`<div class="ai-box" id="dr-box">${DR.text?esc(DR.text):'<span style="color:var(--soft)">아래 버튼으로 초안을 생성하세요.</span>'}</div>
+  const allTabs=cls?.hr?['세특','자율활동','진로활동','행동특성']:['세특'];
+  if(!DR.tabs||!DR.tabs.length)DR.tabs=[allTabs[0]];
+  const typeMap={세특:'교과',자율활동:'자율',진로활동:'진로',행동특성:'행동특성'};
+
+  // 탭 토글 버튼
+  const tabHtml=allTabs.map(t=>{
+    const on=DR.tabs.includes(t);
+    return `<button class="tab${on?' on':''}" onclick="drToggleTab('${t}')" style="${on?'':'opacity:.55'}">${t}</button>`;
+  }).join('');
+
+  // 선택된 탭의 기록 목록
+  const selTypes=DR.tabs.map(t=>typeMap[t]||t);
+  const allRecs=getRecs(UI.cid,UI.sid).filter(r=>selTypes.includes(r.type))
+    .sort((a,b)=>b.date.localeCompare(a.date));
+
+  let recListHtml='';
+  if(!allRecs.length){
+    recListHtml=`<div style="color:var(--soft);font-size:13px;padding:12px 0">선택한 항목의 기록이 없습니다.</div>`;
+  } else {
+    recListHtml=`<div style="max-height:220px;overflow-y:auto;border:1px solid var(--border);border-radius:9px;margin:10px 0">
+      <div style="padding:6px 12px;font-size:11px;color:var(--soft);border-bottom:1px solid var(--border);display:flex;justify-content:space-between">
+        <span>${allRecs.length}개 기록</span>
+        <span><button style="background:none;border:none;font-size:11px;color:var(--blue-m);cursor:pointer" onclick="drSelectAll()">전체선택</button> · <button style="background:none;border:none;font-size:11px;color:var(--soft);cursor:pointer" onclick="drClearAll()">전체해제</button></span>
+      </div>
+      ${allRecs.map((r,i)=>{
+        const sel=DR.selectedRecs.includes(r.id);
+        return `<div style="display:flex;align-items:flex-start;gap:8px;padding:8px 12px;border-bottom:1px solid #F3F4F6;cursor:pointer;background:${sel?'#EFF6FF':'#fff'}" onclick="drToggleRec('${r.id}')">
+          <div style="width:16px;height:16px;border-radius:4px;border:1.5px solid ${sel?'var(--blue-m)':'#D1D5DB'};background:${sel?'var(--blue-m)':'#fff'};display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px">
+            ${sel?'<span style="color:#fff;font-size:11px;font-weight:800">✓</span>':''}
+          </div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:11px;color:var(--soft);margin-bottom:2px">${r.date} · ${r.type}</div>
+            <div style="font-size:12px;color:var(--text);line-height:1.5;white-space:pre-wrap;word-break:break-all">${esc(r.content.slice(0,80))}${r.content.length>80?'...':''}</div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  const selCnt=DR.selectedRecs.filter(id=>allRecs.some(r=>r.id===id)).length;
+
+  let resultHtml='';
+  if(DR.loading){
+    resultHtml=`<div class="ai-loading"><div style="font-size:24px;margin-bottom:10px">✦</div><div>초안 생성 중...</div></div>`;
+  } else if(DR.text){
+    resultHtml=`<div style="margin-top:10px;font-size:11px;font-weight:700;color:var(--muted);margin-bottom:6px">생성된 초안</div>
+      <div class="ai-box" id="dr-box">${esc(DR.text)}</div>
       <div class="modal-foot">
-        ${DR.text?`<button class="btn btn-sec btn-sm" onclick="drCopy()">복사</button>`:''}
-        <button class="btn btn-pri btn-sm" onclick="drGen()">생성</button>
+        <button class="btn btn-sec btn-sm" onclick="drCopy()">복사</button>
+        <button class="btn btn-sec btn-sm" onclick="DR.text='';showDraft()">초기화</button>
+        <button class="btn btn-pri btn-sm" onclick="drGen()">재생성</button>
       </div>`;
-  wrapMd(esc(getStu()?.name||'')+' — 생기부 초안',`<div class="tabs">${tabHtml}</div>${inner}`,'modal-lg');
-  if(!DR.text&&!DR.loading)drGen();
+  } else {
+    resultHtml=`<div class="modal-foot" style="margin-top:10px">
+      <button class="btn btn-pri btn-sm" ${selCnt===0?'disabled':''} onclick="drGen()" style="${selCnt===0?'opacity:.5':''}">
+        ✦ 초안 작성 ${selCnt?`(${selCnt}개 선택)`:''}
+      </button>
+    </div>`;
+  }
+
+  const body=`<div class="tabs">${tabHtml}</div>${recListHtml}${resultHtml}`;
+  wrapMd(esc(getStu()?.name||'')+' — 생기부 초안', body, 'modal-lg');
 }
-function drTab(t){DR.tab=t;DR.text='';DR.loading=false;showDraft();drGen();}
+function drToggleTab(t){
+  if(DR.tabs.includes(t))DR.tabs=DR.tabs.filter(x=>x!==t);
+  else DR.tabs.push(t);
+  if(!DR.tabs.length)DR.tabs=[t]; // 최소 1개
+  DR.text='';DR.selectedRecs=[];showDraft();
+}
+function drToggleRec(id){
+  if(DR.selectedRecs.includes(id))DR.selectedRecs=DR.selectedRecs.filter(x=>x!==id);
+  else DR.selectedRecs.push(id);
+  // 체크박스 UI만 업데이트 (전체 재렌더 없이)
+  showDraft();
+}
+function drSelectAll(){
+  const typeMap={세특:'교과',자율활동:'자율',진로활동:'진로',행동특성:'행동특성'};
+  const selTypes=DR.tabs.map(t=>typeMap[t]||t);
+  DR.selectedRecs=getRecs(UI.cid,UI.sid).filter(r=>selTypes.includes(r.type)).map(r=>r.id);
+  showDraft();
+}
+function drClearAll(){DR.selectedRecs=[];showDraft();}
 function drCopy(){const t=document.getElementById('dr-box');if(t)navigator.clipboard.writeText(t.innerText);}
 async function drGen(){
   const stu=getStu();
   const typeMap={세특:'교과',자율활동:'자율',진로활동:'진로',행동특성:'행동특성'};
-  const target=typeMap[DR.tab]||DR.tab;
-  const recs=getRecs(UI.cid,UI.sid).filter(r=>r.type===target);
-  if(!recs.length){DR.text='이 항목의 기록이 없습니다.';DR.loading=false;showDraft();return;}
-  const txt=recs.map(r=>`[${r.date}] ${r.content}`).join('\n');
+  const selTypes=DR.tabs.map(t=>typeMap[t]||t);
+  const allRecs=getRecs(UI.cid,UI.sid).filter(r=>selTypes.includes(r.type));
+  const recs=DR.selectedRecs.length
+    ?allRecs.filter(r=>DR.selectedRecs.includes(r.id))
+    :allRecs;
+  if(!recs.length){DR.text='선택된 기록이 없습니다.';DR.loading=false;showDraft();return;}
+  const tabLabel=DR.tabs.join('·');
+  const txt=recs.sort((a,b)=>b.date.localeCompare(a.date)).map(r=>`[${r.date}][${r.type}] ${r.content}`).join('\n');
   DR.loading=true;DR.text='';showDraft();
   try{
-    DR.text=(await callAI(`${stu.name} 학생의 활동 기록:\n\n${txt}\n\n위를 바탕으로 학교생활기록부 ${DR.tab} 항목에 적합한 문체로 350~500자의 초안을 작성해주세요. 숫자·날짜는 그대로 활용하고, 입력자 관점이 아닌 학생 행동·성취 중심으로 서술하세요. 초안만 출력하세요.`,1000)).trim();
+    DR.text=(await callAI(`${stu.name} 학생의 활동 기록:\n\n${txt}\n\n위를 바탕으로 학교생활기록부 ${tabLabel} 항목에 적합한 문체로 350~500자의 초안을 작성해주세요. 숫자·날짜는 그대로 활용하고, 입력자 관점이 아닌 학생 행동·성취 중심으로 서술하세요. 초안만 출력하세요.`,1000)).trim();
   }catch(e){DR.text='오류: '+e.message;}
   DR.loading=false;showDraft();
 }
@@ -2351,93 +2423,4 @@ function openMenstrual(sid){
   const body=`
     <div style="padding:4px 0 12px;color:var(--muted);font-size:12px">🟣 생리결석 사용 현황 — ${esc(stu.name)}</div>
     ${rows}
-    <div class="modal-foot"><button class="btn btn-sec" onclick="closeMd()">닫기</button></div>`;
-  wrapMd(esc(stu.name)+' — 생리결석', body);
-}
-function editMenstrual(cid,sid,ym){
-  const data=APP.menstrual[cid+'__'+sid]||{};
-  const existing=data[ym]?.date||'';
-  const month=ym.slice(5)+'월';
-  const body=`
-    <div style="margin-bottom:14px;font-size:13px;color:var(--muted)">${month} 생리결석 날짜를 입력하세요 (선택)</div>
-    <div class="field"><div class="lbl">날짜 (일)</div>
-      <input class="inp" id="mens-date" type="number" min="1" max="31" placeholder="예: 15" value="${existing}" style="width:120px">
-    </div>
-    <div class="modal-foot">
-      <button class="btn btn-sec" onclick="openMenstrual('${sid}')">← 뒤로</button>
-      <button class="btn btn-pri" onclick="saveMenstrual('${cid}','${sid}','${ym}')">저장</button>
-    </div>`;
-  wrapMd('생리결석 입력', body);
-}
-function saveMenstrual(cid,sid,ym){
-  const dateVal=document.getElementById('mens-date')?.value?.trim()||'';
-  if(!APP.menstrual[cid+'__'+sid])APP.menstrual[cid+'__'+sid]={};
-  APP.menstrual[cid+'__'+sid][ym]={date:dateVal,at:Date.now()};
-  saveData();openMenstrual(sid);
-}
-function delMenstrual(cid,sid,ym){
-  if(!APP.menstrual[cid+'__'+sid])return;
-  delete APP.menstrual[cid+'__'+sid][ym];
-  saveData();openMenstrual(sid);
-}
-
-// ── AI 호출 헬퍼 (Claude 우선, 없으면 Gemini) ────────────────────
-async function callAI(prompt, maxTokens=1000){
-  if(APP.apiKey){
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':APP.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})
-    });
-    const d=await res.json();
-    if(d.content?.[0]?.text)return d.content[0].text;
-    throw new Error(d.error?.message||'Claude API 오류');
-  } else if(APP.geminiKey){
-    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${APP.geminiKey}`,{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:maxTokens}})
-    });
-    const d=await res.json();
-    if(d.candidates?.[0]?.content?.parts?.[0]?.text)return d.candidates[0].content.parts[0].text;
-    throw new Error(d.error?.message||'Gemini API 오류');
-  } else {
-    throw new Error('API 키가 없습니다. ⚙ 설정에서 Claude 또는 Gemini API 키를 입력해주세요.');
-  }
-}
-
-// ── Auth 함수 ──────────────────────────────────────────────────
-async function signInWithGoogle(){
-  const provider=new firebase.auth.GoogleAuthProvider();
-  try{await auth.signInWithPopup(provider);}
-  catch(e){console.error('로그인 실패',e);alert('로그인에 실패했습니다.');}
-}
-async function doSignOut(){
-  if(!confirm('로그아웃하시겠습니까?'))return;
-  try{await auth.signOut();}catch(e){console.error(e);}
-}
-
-// ── Auth 상태 감지 ─────────────────────────────────────────────
-auth.onAuthStateChanged(async(user)=>{
-  const loginScreen=document.getElementById('login-screen');
-  const appEl=document.getElementById('app');
-  if(user){
-    _uid=user.uid;
-    _currentUser=user;
-    loginScreen.style.display='none';
-    appEl.style.display='flex';
-    await loadData();
-    UI.cid=APP.hrid||'c7';
-    render();
-    checkFirstVisit();
-  } else {
-    _uid=null;
-    _currentUser=null;
-    APP={classes:ALL_CLS,students:{},records:{},hrid:'c7',apiKey:'',todos:{},contacts:{},visibleCls:null};
-    loginScreen.style.display='flex';
-    appEl.style.display='none';
-  }
-});
-</script>
-</body>
-</html>
+    <div c
