@@ -693,7 +693,7 @@ function renderSidebar(){
         <span class="sb-link-icon">📓</span>노트북LM
       </button>
       <button class="sb-link-btn" onclick="window.open('http://kwangju-g.gen.hs.kr/main/main.php','_blank')">
-        <span class="sb-link-icon">🏢</span>학교 누리집
+        <span class="sb-link-icon">🏢</span>학교 홈페이지
       </button>
     </div>
   </div>`;
@@ -926,40 +926,70 @@ function saveDept(){
   setDept(UI.cid,UI.sid,v);renderStudentView();
 }
 
+// 엑셀 시트 스타일 적용 헬퍼
+function applyXlsxStyle(ws, cols){
+  // 열 너비 설정
+  ws['!cols']=cols.map(w=>({wch:w}));
+  // 헤더 스타일 (A1~마지막 헤더)
+  const range=XLSX.utils.decode_range(ws['!ref']||'A1');
+  for(let c=range.s.c;c<=range.e.c;c++){
+    const addr=XLSX.utils.encode_cell({r:0,c});
+    if(!ws[addr])continue;
+    ws[addr].s={font:{bold:true},fill:{fgColor:{rgb:'1A2535'},patternType:'solid'},
+      font:{bold:true,color:{rgb:'FFFFFF'}},alignment:{horizontal:'center',vertical:'center',wrapText:true}};
+  }
+  // 내용 셀 줄바꿈
+  for(let r=range.s.r+1;r<=range.e.r;r++){
+    const contAddr=XLSX.utils.encode_cell({r,c:range.e.c-1}); // 내용 열
+    if(ws[contAddr])ws[contAddr].s={alignment:{wrapText:true,vertical:'top'}};
+  }
+  // 행 높이 (내용 행)
+  ws['!rows']=[{hpt:22}]; // 헤더
+  for(let r=1;r<=range.e.r;r++){
+    if(!ws['!rows'])ws['!rows']=[];
+    ws['!rows'][r]={hpt:60};
+  }
+}
+
 function exportClsXlsx(){
   const cls=getCls();const stds=getStds(UI.cid);
   const wb=XLSX.utils.book_new();
+  const rows=[];
   stds.forEach(s=>{
-    const recs=getRecs(UI.cid,s.id);
-    if(!recs.length)return;
-    const rows=recs.map(r=>({'날짜':r.date,'유형':r.type,'내용':r.content,'출처':r.source||''}));
-    const ws=XLSX.utils.json_to_sheet(rows);
-    XLSX.utils.book_append_sheet(wb,ws,s.number+'번_'+s.name);
+    getRecs(UI.cid,s.id)
+      .sort((a,b)=>b.date.localeCompare(a.date))
+      .forEach(r=>rows.push({'날짜':r.date,'번호':s.number,'이름':s.name,'유형':r.type,'내용':r.content,'출처':r.source||''}));
   });
-  if(!wb.SheetNames.length){alert('기록이 없습니다');return;}
+  if(!rows.length){alert('기록이 없습니다');return;}
+  const ws=XLSX.utils.json_to_sheet(rows);
+  applyXlsxStyle(ws,[10,7,10,10,60,15]);
+  XLSX.utils.book_append_sheet(wb,ws,cls.name+' 전체');
   XLSX.writeFile(wb,cls.name+'_전체기록_'+today()+'.xlsx');
 }
 function exportAllXlsx(){
   const wb=XLSX.utils.book_new();
+  const rows=[];
   APP.classes.forEach(cls=>{
-    const stds=getStds(cls.id);
-    stds.forEach(s=>{
-      const recs=getRecs(cls.id,s.id);
-      if(!recs.length)return;
-      const rows=recs.map(r=>({'반':cls.name,'번호':s.number,'이름':s.name,'날짜':r.date,'유형':r.type,'내용':r.content}));
-      const shName=(cls.name+'_'+s.number+s.name).slice(0,31);
-      const ws=XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb,ws,shName);
+    getStds(cls.id).forEach(s=>{
+      getRecs(cls.id,s.id)
+        .sort((a,b)=>b.date.localeCompare(a.date))
+        .forEach(r=>rows.push({'날짜':r.date,'반':cls.name,'번호':s.number,'이름':s.name,'유형':r.type,'내용':r.content,'출처':r.source||''}));
     });
   });
-  if(!wb.SheetNames.length){alert('기록이 없습니다');return;}
+  if(!rows.length){alert('기록이 없습니다');return;}
+  const ws=XLSX.utils.json_to_sheet(rows);
+  applyXlsxStyle(ws,[10,8,7,10,10,60,15]);
+  XLSX.utils.book_append_sheet(wb,ws,'전체 기록');
   XLSX.writeFile(wb,'전체반_기록_'+today()+'.xlsx');
 }
 function exportStuXlsx(){
   const stu=getStu();const cls=getCls();
-  const recs=getRecs(UI.cid,UI.sid);
-  const rows=recs.map(r=>({'날짜':r.date,'유형':r.type,'내용':r.content,'출처':r.source||''}));
+  const rows=getRecs(UI.cid,UI.sid)
+    .sort((a,b)=>b.date.localeCompare(a.date))
+    .map(r=>({'날짜':r.date,'유형':r.type,'내용':r.content,'출처':r.source||''}));
+  if(!rows.length){alert('기록이 없습니다');return;}
   const ws=XLSX.utils.json_to_sheet(rows);
+  applyXlsxStyle(ws,[10,10,60,15]);
   const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'기록');
   XLSX.writeFile(wb,`${cls.name}_${stu.number}번_${stu.name}_기록.xlsx`);
 }
