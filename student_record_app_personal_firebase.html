@@ -718,7 +718,9 @@ function renderClassView(){
       <button class="btn btn-sec btn-sm" onclick="openMd('import')">📋 명단 업로드</button>
       <button class="btn btn-sec btn-sm" onclick="ctUpload()">📞 연락처 업로드</button>
       <button class="btn btn-sec btn-sm" onclick="openMd('addOne')">+ 학생 추가</button>
-      <button class="btn btn-sec btn-sm" onclick="openMd('file')">📄 파일 업로드</button>
+      <button class="btn btn-sec btn-sm" onclick="requireApi(()=>openMd('file'))" style="${APP.apiKey||APP.geminiKey?'':'opacity:.45'}">
+        ${APP.apiKey||APP.geminiKey?'📄 파일 업로드':'🔒 파일 업로드'}
+      </button>
       <button class="btn btn-sec btn-sm" onclick="openMd('role')">🎖 역할 관리</button>
       <button class="btn btn-sec btn-sm" onclick="selAllRecs()">📋 전체 기록 보기</button>
       <button class="btn btn-sec btn-sm" onclick="exportClsXlsx()">↓ 전체 엑셀</button>
@@ -808,8 +810,12 @@ function renderStudentView(){
         <button class="btn${UI.showTt?' btn-pri':' btn-sec'} btn-sm" onclick="toggleTt()">🗓 시간표</button>
         <button class="btn btn-sec btn-sm" onclick="exportStuXlsx()">↓ 엑셀</button>
         <button class="btn btn-sec btn-sm" onclick="openMenstrual('${UI.sid}')" title="생리결석 현황" style="font-size:15px;padding:4px 9px">🟣</button>
-        <button class="btn btn-sec btn-sm" onclick="openMd('draft')">✦ 생기부 초안</button>
-        ${cls.id===APP.hrid?`<button class="btn btn-sec btn-sm" onclick="openMd('analysis')">🔍 학종 분석</button>`:''}
+        <button class="btn btn-sec btn-sm" onclick="requireApi(()=>openMd('draft'))" style="${APP.apiKey||APP.geminiKey?'':'opacity:.45'}">
+          ${APP.apiKey||APP.geminiKey?'✦ 생기부 초안':'🔒 생기부 초안'}
+        </button>
+        ${cls.id===APP.hrid?`<button class="btn btn-sec btn-sm" onclick="requireApi(()=>openMd('analysis'))" style="${APP.apiKey||APP.geminiKey?'':'opacity:.45'}">
+          ${APP.apiKey||APP.geminiKey?'🔍 학종 분석':'🔒 학종 분석'}
+        </button>`:''}
         <button class="btn btn-pri btn-sm" onclick="openMd('add')">+ 기록 추가</button>
       </div>
     </div></div>
@@ -2096,7 +2102,7 @@ function saveGeminiKey(){const v=(document.getElementById('gemini-key-inp').valu
 function clearGeminiKey(){APP.geminiKey='';saveData();showSettings();}
 function impJsonF(file){
   const r=new FileReader();r.onload=e=>{
-    try{const d=JSON.parse(e.target.result);APP.students=d.students||{};APP.records=d.records||{};saveData();closeMd();render();}
+    try{const d=JSON.parse(e.target.result);APP.students=d.students||{};APP.records=d.records||{};APP.contacts=d.contacts||{};APP.menstrual=d.menstrual||{};APP.visibleCls=d.visibleCls||null;if(d.hrid)APP.hrid=d.hrid;saveData();closeMd();render();alert('불러오기 완료!');}
     catch(e2){alert('파일 형식 오류');}
   };r.readAsText(file);
 }
@@ -2425,6 +2431,16 @@ function saveEdit(){
 }
 // ── Firebase 초기화 ──────────────────────────────────────────
 
+
+// ── API 키 필요 안내 ─────────────────────────────────────────
+function requireApi(fn){
+  if(APP.apiKey||APP.geminiKey){fn();return;}
+  // 토스트 메시지
+  const t=document.createElement('div');
+  t.style.cssText='position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#1A2535;color:#E8F2FA;padding:11px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;display:flex;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1)';
+  document.body.appendChild(t);
+  setTimeout(()=>t.remove(),4000);
+}
 
 // ── 생리결석 관리 ────────────────────────────────────────────
 function openMenstrual(sid){
