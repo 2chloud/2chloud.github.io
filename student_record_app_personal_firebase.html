@@ -2423,9 +2423,37 @@ function saveEdit(){
 // ── API 키 필요 안내 ─────────────────────────────────────────
 function requireApi(fn){
   if(APP.apiKey){fn();return;}
-  // 토스트 메시지
   const t=document.createElement('div');
-  t.style.cssText='position:fixed;bottom:30px;left:50%;transform:translateX(-50%);background:#1A2535;color:#E8F2FA;padding:11px 20px;border-radius:10px;font-size:13px;font-weight:600;z-index:9999;display:flex;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1)';
+  t.style.position='fixed';
+  t.style.bottom='30px';
+  t.style.left='50%';
+  t.style.transform='translateX(-50%)';
+  t.style.background='#1A2535';
+  t.style.color='#E8F2FA';
+  t.style.padding='12px 20px';
+  t.style.borderRadius='10px';
+  t.style.fontSize='13px';
+  t.style.fontWeight='600';
+  t.style.zIndex='9999';
+  t.style.display='flex';
+  t.style.alignItems='center';
+  t.style.gap='10px';
+  t.style.whiteSpace='nowrap';
+  t.style.boxShadow='0 4px 20px rgba(0,0,0,.4)';
+  t.style.border='1px solid rgba(255,255,255,.1)';
+  const msg=document.createTextNode('🔑 API 키가 필요한 기능입니다. ');
+  const btn=document.createElement('button');
+  btn.textContent='설정 열기';
+  btn.style.background='#1D4ED8';
+  btn.style.color='#fff';
+  btn.style.border='none';
+  btn.style.borderRadius='6px';
+  btn.style.padding='4px 10px';
+  btn.style.fontSize='12px';
+  btn.style.fontWeight='700';
+  btn.style.cursor='pointer';
+  btn.onclick=()=>{t.remove();openMd('settings');};
+  t.appendChild(msg);t.appendChild(btn);
   document.body.appendChild(t);
   setTimeout(()=>t.remove(),4000);
 }
@@ -2490,7 +2518,7 @@ function delMenstrual(cid,sid,ym){
   saveData();openMenstrual(sid);
 }
 
-// ── AI 호출 헬퍼 (Claude 우선, 없으면 Gemini) ────────────────────
+// ── AI 호출 헬퍼 (Claude) ────────────────────
 async function callAI(prompt, maxTokens=1000){
   if(!APP.apiKey)throw new Error('API 키가 없습니다. ⚙ 설정에서 Claude API 키를 입력해주세요.');
   const res=await fetch('https://api.anthropic.com/v1/messages',{
