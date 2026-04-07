@@ -558,7 +558,7 @@ async function saveData(){
   }catch(e){console.warn('saveData error',e);}
 }
 function exportJSON(){
-  const b=new Blob([JSON.stringify({students:APP.students,records:APP.records},null,2)],{type:'application/json'});
+  const b=new Blob([JSON.stringify({students:APP.students,records:APP.records,contacts:APP.contacts,menstrual:APP.menstrual||{},visibleCls:APP.visibleCls,hrid:APP.hrid},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='기록백업_'+today()+'.json';a.click();
 }
 
