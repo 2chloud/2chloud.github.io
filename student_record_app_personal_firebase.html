@@ -752,7 +752,7 @@ function renderClassView(){
           <div class="snum">${s.number}</div>
           <span style="position:relative;display:inline-flex;align-items:center">
             <span class="scard-name">${esc(s.name)}</span>
-            ${(()=>{const ym=new Date().toISOString().slice(0,7);const mk=UI.cid+'__'+s.id;return (APP.menstrual[mk]||{})[ym]?'<span style="width:7px;height:7px;border-radius:50%;background:#7C3AED;position:absolute;top:-2px;right:-9px;flex-shrink:0"></span>':''})()}
+            ${(()=>{const ym=new Date().toISOString().slice(0,7);const mk=UI.cid+'__'+s.id;return (APP.menstrual[mk]||{})[ym]?'<span style="display:inline-block;width:5px;height:5px;border-radius:50%;background:#EC4899;margin-left:3px;margin-bottom:1px;flex-shrink:0;vertical-align:middle"></span>':''})()}
           </span>
           <span class="scard-cnt">${recs.length?recs.length+'건':''}</span>
           <button class="flag-btn${s.flag?' on':''}" onclick="toggleFlag('${UI.cid}','${s.id}',event)" title="${s.flag?'팔로우업 해제':'팔로우업 설정'}">🔖</button>
