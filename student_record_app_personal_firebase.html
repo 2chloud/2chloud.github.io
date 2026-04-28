@@ -538,7 +538,7 @@ async function loadData(){
       APP.todos=d.todos||{};APP.contacts=d.contacts||{};
       APP.visibleCls=d.visibleCls||null;APP.menstrual=d.menstrual||{};
     }
-  }catch(e){console.warn('loadData error',e);}
+  }catch(e){console.warn('loadData error',e);return;}
   // seed students if empty
   ALL_CLS.forEach(c=>{
     if(!APP.students[c.id]||APP.students[c.id].length===0){
@@ -561,6 +561,65 @@ async function saveData(){
 function exportJSON(){
   const b=new Blob([JSON.stringify({students:APP.students,records:APP.records,contacts:APP.contacts,menstrual:APP.menstrual||{},visibleCls:APP.visibleCls,hrid:APP.hrid},null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='기록백업_'+today()+'.json';a.click();
+}
+// ────────────────────── BACKUP ──────────────────────
+async function autoBackup(){
+  if(!_uid)return;
+  try{
+    await db.collection('backups').doc(_uid).collection('daily').doc(today()).set({
+      students:APP.students,records:APP.records,hrid:APP.hrid,
+      contacts:APP.contacts,visibleCls:APP.visibleCls||null,
+      menstrual:APP.menstrual||{},savedAt:Date.now()
+    });
+    // 30일 초과 백업 자동 삭제
+    const cutoff=new Date();cutoff.setDate(cutoff.getDate()-30);
+    const cutStr=cutoff.toISOString().slice(0,10);
+    const old=await db.collection('backups').doc(_uid).collection('daily')
+      .where(firebase.firestore.FieldPath.documentId(),'<',cutStr).get();
+    if(!old.empty){const batch=db.batch();old.docs.forEach(d=>batch.delete(d.ref));await batch.commit();}
+  }catch(e){console.warn('autoBackup error',e);}
+}
+async function showBackupRestore(){
+  if(!_uid)return;
+  openMd(`<div class="modal-hd"><span class="modal-title">☁️ 자동 백업 복원</span><button class="modal-x" onclick="closeMd()">×</button></div>
+    <div class="modal-body"><div id="bk-list"><div class="ai-loading">백업 목록 불러오는 중…</div></div></div>`,'modal-sm');
+  try{
+    const snap=await db.collection('backups').doc(_uid).collection('daily')
+      .orderBy(firebase.firestore.FieldPath.documentId(),'desc').limit(30).get();
+    if(snap.empty){
+      document.getElementById('bk-list').innerHTML='<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">저장된 백업 없음</div><div style="font-size:12px;margin-top:4px">다음 로그인 시 자동 저장됩니다.</div></div>';
+      return;
+    }
+    const rows=snap.docs.map(doc=>{
+      const dt=doc.id;
+      const data=doc.data();
+      const at=data.savedAt?new Date(data.savedAt).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}):'';
+      const rCount=Object.values(data.records||{}).reduce((s,arr)=>s+(arr?.length||0),0);
+      return `<div class="set-box" style="margin-bottom:8px;padding:11px 13px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+          <div>
+            <div style="font-weight:700;font-size:14px">📅 ${dt}</div>
+            <div style="font-size:12px;color:var(--muted);margin-top:2px">기록 ${rCount}건${at?' · 저장 '+at:''}</div>
+          </div>
+          <button class="btn btn-sec btn-sm" onclick="restoreBackup('${dt}')">복원</button>
+        </div>
+      </div>`;
+    }).join('');
+    document.getElementById('bk-list').innerHTML=`<p style="font-size:12px;color:var(--muted);margin-bottom:12px">날짜를 선택해 해당 시점으로 복원합니다.<br><strong style="color:var(--red)">현재 데이터가 덮어씌워집니다.</strong></p>${rows}`;
+  }catch(e){console.warn(e);document.getElementById('bk-list').innerHTML='<div class="empty">목록 불러오기 실패</div>';}
+}
+async function restoreBackup(dateStr){
+  if(!confirm(`${dateStr} 백업으로 복원하시겠습니까?\n현재 데이터가 덮어씌워집니다.`))return;
+  try{
+    const doc=await db.collection('backups').doc(_uid).collection('daily').doc(dateStr).get();
+    if(!doc.exists){alert('백업 데이터를 찾을 수 없습니다.');return;}
+    const d=doc.data();
+    APP.students=d.students||{};APP.records=d.records||{};
+    APP.contacts=d.contacts||{};APP.menstrual=d.menstrual||{};
+    APP.visibleCls=d.visibleCls||null;if(d.hrid)APP.hrid=d.hrid;
+    await saveData();closeMd();render();
+    alert(`${dateStr} 백업으로 복원 완료!`);
+  }catch(e){console.warn(e);alert('복원 중 오류가 발생했습니다.');}
 }
 
 // ────────────────────── MUTATIONS ──────────────────────
@@ -2016,6 +2075,11 @@ function showSettings(){
       <div style="display:flex;gap:5px;flex-wrap:wrap">${clsBtns}</div>
     </div>
     <div class="set-box">
+      <div class="set-title">☁️ 자동 백업 복원</div>
+      <div class="set-desc">로그인 시 자동으로 오늘 날짜 백업이 저장됩니다. 최근 30일치 보관.</div>
+      <button class="btn btn-sec btn-sm" onclick="showBackupRestore()">📅 백업 목록 보기 / 복원</button>
+    </div>
+    <div class="set-box">
       <div class="set-title">💾 내보내기 (백업)</div>
       <div class="set-desc">전체 데이터를 JSON 파일로 저장합니다. 이 파일로 나중에 복원할 수 있습니다.</div>
       <button class="btn btn-sec btn-sm" onclick="exportJSON()">JSON으로 내보내기</button>
@@ -2554,6 +2618,7 @@ auth.onAuthStateChanged(async(user)=>{
     UI.cid=APP.hrid||'c7';
     render();
     checkFirstVisit();
+    autoBackup();
   } else {
     _uid=null;
     _currentUser=null;
