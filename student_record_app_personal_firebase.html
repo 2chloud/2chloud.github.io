@@ -581,8 +581,7 @@ async function autoBackup(){
 }
 async function showBackupRestore(){
   if(!_uid)return;
-  openMd(`<div class="modal-hd"><span class="modal-title">☁️ 자동 백업 복원</span><button class="modal-x" onclick="closeMd()">×</button></div>
-    <div class="modal-body"><div id="bk-list"><div class="ai-loading">백업 목록 불러오는 중…</div></div></div>`,'modal-sm');
+  wrapMd('☁️ 자동 백업 복원','<div id="bk-list"><div class="ai-loading">백업 목록 불러오는 중…</div></div>','modal-sm');
   try{
     const snap=await db.collection('backups').doc(_uid).collection('daily')
       .orderBy(firebase.firestore.FieldPath.documentId(),'desc').limit(30).get();
