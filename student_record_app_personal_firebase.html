@@ -564,7 +564,8 @@ function exportJSON(){
 }
 // ────────────────────── BACKUP ──────────────────────
 async function autoBackup(){
-  if(!_uid){alert('autoBackup: _uid 없음');return;}
+  if(!_uid){console.warn('autoBackup: _uid 없음');return;}
+  console.log('autoBackup 시작 uid='+_uid+' date='+today());
   try{
     await db.collection('backups').doc(_uid).collection('daily').doc(today()).set({
       students:APP.students,records:APP.records,hrid:APP.hrid,
@@ -577,8 +578,27 @@ async function autoBackup(){
     const old=await db.collection('backups').doc(_uid).collection('daily')
       .where(firebase.firestore.FieldPath.documentId(),'<',cutStr).get();
     if(!old.empty){const batch=db.batch();old.docs.forEach(d=>batch.delete(d.ref));await batch.commit();}
-    alert('autoBackup 성공! uid='+_uid+' date='+today());
-  }catch(e){console.warn('autoBackup error',e);alert('autoBackup 실패: '+(e.code||e.message||String(e)));}
+    console.log('autoBackup 성공!');
+  }catch(e){console.error('autoBackup error',e);}
+}
+async function manualBackup(){
+  const btn=document.getElementById('manual-bk-btn');
+  const msg=document.getElementById('manual-bk-msg');
+  if(!btn||!msg)return;
+  btn.disabled=true;btn.textContent='저장 중…';msg.textContent='';
+  if(!_uid){msg.style.color='var(--red)';msg.textContent='로그인 필요';btn.disabled=false;btn.textContent='지금 백업';return;}
+  try{
+    await db.collection('backups').doc(_uid).collection('daily').doc(today()).set({
+      students:APP.students,records:APP.records,hrid:APP.hrid,
+      contacts:APP.contacts,visibleCls:APP.visibleCls||null,
+      menstrual:APP.menstrual||{},savedAt:Date.now()
+    });
+    msg.style.color='var(--success)';msg.textContent='✓ '+today()+' 백업 완료!';
+  }catch(e){
+    console.error('manualBackup error',e);
+    msg.style.color='var(--red)';msg.textContent='실패: '+(e.code||e.message||String(e));
+  }
+  btn.disabled=false;btn.textContent='지금 백업';
 }
 async function showBackupRestore(){
   if(!_uid)return;
@@ -2077,6 +2097,10 @@ function showSettings(){
     <div class="set-box">
       <div class="set-title">☁️ 자동 백업 복원</div>
       <div class="set-desc">로그인 시 자동으로 오늘 날짜 백업이 저장됩니다. 최근 30일치 보관.</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+        <button id="manual-bk-btn" class="btn btn-sec btn-sm" onclick="manualBackup()">지금 백업</button>
+        <span id="manual-bk-msg" style="font-size:12px;font-weight:600"></span>
+      </div>
       <button class="btn btn-sec btn-sm" onclick="showBackupRestore()">📅 백업 목록 보기 / 복원</button>
     </div>
     <div class="set-box">
