@@ -564,7 +564,7 @@ function exportJSON(){
 }
 // ────────────────────── BACKUP ──────────────────────
 async function autoBackup(){
-  if(!_uid)return;
+  if(!_uid){alert('autoBackup: _uid 없음');return;}
   try{
     await db.collection('backups').doc(_uid).collection('daily').doc(today()).set({
       students:APP.students,records:APP.records,hrid:APP.hrid,
@@ -577,6 +577,7 @@ async function autoBackup(){
     const old=await db.collection('backups').doc(_uid).collection('daily')
       .where(firebase.firestore.FieldPath.documentId(),'<',cutStr).get();
     if(!old.empty){const batch=db.batch();old.docs.forEach(d=>batch.delete(d.ref));await batch.commit();}
+    alert('autoBackup 성공! uid='+_uid+' date='+today());
   }catch(e){console.warn('autoBackup error',e);alert('autoBackup 실패: '+(e.code||e.message||String(e)));}
 }
 async function showBackupRestore(){
