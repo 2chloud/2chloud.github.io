@@ -583,13 +583,13 @@ async function showBackupRestore(){
   if(!_uid)return;
   wrapMd('☁️ 자동 백업 복원','<div id="bk-list"><div class="ai-loading">백업 목록 불러오는 중…</div></div>','modal-sm');
   try{
-    const snap=await db.collection('backups').doc(_uid).collection('daily')
-      .orderBy(firebase.firestore.FieldPath.documentId(),'desc').limit(30).get();
+    const snap=await db.collection('backups').doc(_uid).collection('daily').limit(30).get();
     if(snap.empty){
       document.getElementById('bk-list').innerHTML='<div class="empty"><div class="empty-icon">📭</div><div class="empty-title">저장된 백업 없음</div><div style="font-size:12px;margin-top:4px">다음 로그인 시 자동 저장됩니다.</div></div>';
       return;
     }
-    const rows=snap.docs.map(doc=>{
+    const sorted=snap.docs.slice().sort((a,b)=>b.id.localeCompare(a.id));
+    const rows=sorted.map(doc=>{
       const dt=doc.id;
       const data=doc.data();
       const at=data.savedAt?new Date(data.savedAt).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}):'';
@@ -605,7 +605,7 @@ async function showBackupRestore(){
       </div>`;
     }).join('');
     document.getElementById('bk-list').innerHTML=`<p style="font-size:12px;color:var(--muted);margin-bottom:12px">날짜를 선택해 해당 시점으로 복원합니다.<br><strong style="color:var(--red)">현재 데이터가 덮어씌워집니다.</strong></p>${rows}`;
-  }catch(e){console.warn(e);document.getElementById('bk-list').innerHTML='<div class="empty">목록 불러오기 실패</div>';}
+  }catch(e){console.warn(e);document.getElementById('bk-list').innerHTML=`<div class="empty">목록 불러오기 실패<br><span style="font-size:11px;color:#9CA3AF">${e.code||e.message||String(e)}</span></div>`;}
 }
 async function restoreBackup(dateStr){
   if(!confirm(`${dateStr} 백업으로 복원하시겠습니까?\n현재 데이터가 덮어씌워집니다.`))return;
