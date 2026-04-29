@@ -2641,7 +2641,6 @@ auth.onAuthStateChanged(async(user)=>{
     await loadData();
     UI.cid=APP.hrid||'c7';
     render();
-    checkFirstVisit();
     autoBackup();
   } else {
     _uid=null;
