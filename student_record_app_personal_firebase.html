@@ -577,7 +577,7 @@ async function autoBackup(){
     const old=await db.collection('backups').doc(_uid).collection('daily')
       .where(firebase.firestore.FieldPath.documentId(),'<',cutStr).get();
     if(!old.empty){const batch=db.batch();old.docs.forEach(d=>batch.delete(d.ref));await batch.commit();}
-  }catch(e){console.warn('autoBackup error',e);}
+  }catch(e){console.warn('autoBackup error',e);alert('autoBackup 실패: '+(e.code||e.message||String(e)));}
 }
 async function showBackupRestore(){
   if(!_uid)return;
