@@ -2510,9 +2510,11 @@ async function doAnalysis(mode){
   // 시간표에서 실제 수강 과목 추출
   const _subjectMap={'화언':'화법과 언어','스생':'스포츠생활'};
   const _normalizeSubject=s=>{
-    // 교실번호 접미사 제거 (예: 대수-201 → 대수)
-    const base=s.replace(/-\d{3}$/,'').trim();
-    return _subjectMap[base]||base;
+    let n=s.trim();
+    n=n.replace(/-\d{3}$/,'');     // 교실번호 접미사 제거 (예: 대수-201 → 대수)
+    n=n.replace(/[A-Z]\d?$/,'');   // 분반 접미사 제거 (예: 사회와문화B1 → 사회와문화)
+    n=(_subjectMap[n.trim()]||n).trim(); // 줄임말 → 전체 이름 (정제 후 변환)
+    return n;
   };
   const clsNumA=UI.cid.replace('c','');
   const stuNumA=stu?.number;
