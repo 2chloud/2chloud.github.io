@@ -2508,6 +2508,12 @@ async function doAnalysis(mode){
   const stu=getStu();
   const deptPart=stu?.dept?`희망 계열/학과: ${stu.dept}\n`:'';
   // 시간표에서 실제 수강 과목 추출
+  const _subjectMap={'화언':'화법과 언어','스생':'스포츠생활'};
+  const _normalizeSubject=s=>{
+    // 교실번호 접미사 제거 (예: 대수-201 → 대수)
+    const base=s.replace(/-\d{3}$/,'').trim();
+    return _subjectMap[base]||base;
+  };
   const clsNumA=UI.cid.replace('c','');
   const stuNumA=stu?.number;
   const subjectsByTerm=[];
@@ -2516,7 +2522,9 @@ async function doAnalysis(mode){
     const stuTtA=ttD[stuNumA];
     if(stuTtA?.s){
       const subSet=new Set();
-      Object.values(stuTtA.s).forEach(days=>Object.values(days).forEach(cell=>{if(cell?.s)subSet.add(cell.s);}));
+      Object.values(stuTtA.s).forEach(days=>Object.values(days).forEach(cell=>{
+        if(cell?.s) subSet.add(_normalizeSubject(cell.s));
+      }));
       if(subSet.size)subjectsByTerm.push(`2학년 ${term} 수강 과목: ${[...subSet].join(', ')}`);
     }
   });
