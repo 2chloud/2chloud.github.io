@@ -2391,7 +2391,7 @@ async function anaUpload(file){
   _pdfFile=file;_pdfMaskPct=7;
   const stu=getStu();
   const body=`<p style="font-size:13px;color:var(--muted);margin-bottom:10px">각 페이지의 <strong>이름·학번 영역</strong>을 마스킹한 후 분석합니다.<br>슬라이더로 마스킹 높이를 조절하세요.</p>
-    <div style="position:relative;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:12px;background:#111;max-height:400px">
+    <div id="mask-wrap" style="position:relative;border:1px solid var(--border);border-radius:8px;overflow-y:auto;margin-bottom:12px;background:#111;max-height:400px">
       <canvas id="mask-canvas" style="width:100%;display:block"></canvas>
       <div id="mask-bar" style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.82);border-top:2px solid #EF4444;transition:height .1s;height:7%"></div>
     </div>
@@ -2417,12 +2417,23 @@ async function anaUpload(file){
     if(!canvas)return;
     canvas.width=vp.width;canvas.height=vp.height;
     await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
+    // 초기 마스킹 바 높이를 캔버스 기준으로 재계산
+    updateMaskBar(_pdfMaskPct);
+    // 하단(개인정보 위치)이 보이도록 스크롤
+    const wrap=document.getElementById('mask-wrap');
+    if(wrap) wrap.scrollTop=wrap.scrollHeight;
   }catch(e){console.warn('PDF preview error',e);}
 }
 function updateMaskBar(val){
   _pdfMaskPct=parseInt(val);
   const pct=document.getElementById('mask-pct');if(pct)pct.textContent=val+'%';
-  const bar=document.getElementById('mask-bar');if(bar)bar.style.height=val+'%';
+  const bar=document.getElementById('mask-bar');
+  const canvas=document.getElementById('mask-canvas');
+  if(bar&&canvas){
+    // 캔버스 실제 렌더 높이(px) 기준으로 마스킹 높이 계산 → 화면에 표시되는 비율로 변환
+    const canvasH=canvas.offsetHeight||canvas.height;
+    bar.style.height=(canvasH*parseInt(val)/100)+'px';
+  }
 }
 async function doMaskedAnalysis(){
   if(!_pdfFile||!APP.apiKey)return;
