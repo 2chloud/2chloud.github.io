@@ -5,6 +5,7 @@
 <title>오늘도 키움 🌱</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -489,6 +490,7 @@ let FU={step:'upload', items:[], fname:'', err:'', forceType:'', date:''};
 let IMP={preview:null, err:''};
 let DR={tab:'', tabs:[], text:'', loading:false, selectedRecs:[]};
 let ANADATA=null;
+let _pdfFile=null,_pdfMaskPct=7;
 
 // ────────────────────── UTILS ──────────────────────
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
@@ -2386,17 +2388,70 @@ async function anaMode(mode){
 }
 async function anaUpload(file){
   if(!APP.apiKey){alert('PDF 생기부 분석은 Claude API 키가 필요합니다.\n⚙ 설정에서 Claude API 키를 입력해주세요.');return;}
+  _pdfFile=file;_pdfMaskPct=7;
+  const stu=getStu();
+  const body=`<p style="font-size:13px;color:var(--muted);margin-bottom:10px">각 페이지의 <strong>이름·학번 영역</strong>을 마스킹한 후 분석합니다.<br>슬라이더로 마스킹 높이를 조절하세요.</p>
+    <div style="position:relative;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:12px;background:#111;max-height:400px">
+      <canvas id="mask-canvas" style="width:100%;display:block"></canvas>
+      <div id="mask-bar" style="position:absolute;top:0;left:0;right:0;background:rgba(0,0,0,0.82);border-bottom:2px solid #EF4444;transition:height .1s;height:7%"></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+      <span style="font-size:12px;color:var(--muted);white-space:nowrap">마스킹 높이</span>
+      <input type="range" id="mask-slider" min="2" max="25" value="7" style="flex:1" oninput="updateMaskBar(this.value)">
+      <span id="mask-pct" style="font-size:12px;font-weight:700;color:#EF4444;width:34px">7%</span>
+    </div>
+    <p style="font-size:11px;color:var(--soft);margin-bottom:14px">※ 이름·학번이 완전히 가려지도록 조절하세요. 마스킹 영역은 모든 페이지에 동일하게 적용됩니다.</p>
+    <div class="modal-foot">
+      <button class="btn btn-sec" onclick="showAnalysisMenu()">← 뒤로</button>
+      <button class="btn btn-pri" onclick="doMaskedAnalysis()">🔒 마스킹 후 분석</button>
+    </div>`;
+  wrapMd(esc(stu?.name||'')+' — 개인정보 마스킹',body,'modal-lg');
+  // 첫 페이지 미리보기 렌더링
+  try{
+    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const ab=await file.arrayBuffer();
+    const pdf=await pdfjsLib.getDocument({data:ab}).promise;
+    const page=await pdf.getPage(1);
+    const vp=page.getViewport({scale:1.5});
+    const canvas=document.getElementById('mask-canvas');
+    if(!canvas)return;
+    canvas.width=vp.width;canvas.height=vp.height;
+    await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
+  }catch(e){console.warn('PDF preview error',e);}
+}
+function updateMaskBar(val){
+  _pdfMaskPct=parseInt(val);
+  const pct=document.getElementById('mask-pct');if(pct)pct.textContent=val+'%';
+  const bar=document.getElementById('mask-bar');if(bar)bar.style.height=val+'%';
+}
+async function doMaskedAnalysis(){
+  if(!_pdfFile||!APP.apiKey)return;
   const stu=getStu();
   const deptPart=stu.dept?`희망 계열/학과: ${stu.dept}\n`:'';
   ANADATA={loading:true,text:''};showAnalysisResult();
   try{
-    const b64=await new Promise((ok,fail)=>{const r=new FileReader();r.onload=()=>ok(r.result.split(',')[1]);r.onerror=fail;r.readAsDataURL(file);});
+    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    const ab=await _pdfFile.arrayBuffer();
+    const pdf=await pdfjsLib.getDocument({data:ab}).promise;
+    const imgContents=[];
+    for(let i=1;i<=pdf.numPages;i++){
+      const page=await pdf.getPage(i);
+      const vp=page.getViewport({scale:1.8});
+      const canvas=document.createElement('canvas');
+      canvas.width=vp.width;canvas.height=vp.height;
+      const ctx=canvas.getContext('2d');
+      await page.render({canvasContext:ctx,viewport:vp}).promise;
+      // 마스킹 적용
+      const mh=Math.floor(canvas.height*_pdfMaskPct/100);
+      ctx.fillStyle='#000000';ctx.fillRect(0,0,canvas.width,mh);
+      const b64=canvas.toDataURL('image/jpeg',0.88).split(',')[1];
+      imgContents.push({type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}});
+    }
     const _prompt=`너는 학생부종합전형, 학생부교과전형, 2022 개정교육과정, 2028학년도 대입을 이해하는 진로진학 전문 교사다.
 
 지금부터 업로드된 학생의 학교생활기록부를 분석해 줘.
 
 [분석 대상 조건]
-- 학생 이름: ${stu.name}
 ${deptPart}- 대상 학생은 2026학년도 고등학교 2학년이며, 2022 개정교육과정 적용 학생이다.
 - 현재 시점은 고2 1학기이므로 학교생활기록부에는 1학년 내용만 있다고 가정한다.
 - 2학년 기록이 없다는 점을 반드시 반영하여, 현재까지 드러난 경향과 2학년 보완 방향 중심으로 분석한다.
@@ -2585,7 +2640,7 @@ D. 창체 프로젝트형 활동 참고
 
 [출력 형식]
 
-## ${stu.name} 학생 학교생활기록부 분석
+## 학교생활기록부 분석
 
 ### 0. 한눈에 보는 요약
 - 현재 기록에서 가장 강하게 보이는 특징 3가지:
@@ -2700,7 +2755,8 @@ D. 창체 프로젝트형 활동 참고
 - 과장 없이 명확하게, 이유를 반드시 설명하라.
 - 단정적 합격 예측, 대학 수준 예측, 등급컷 예측은 하지 마라.
 - 활동 추천은 반드시 교내 수업, 수행평가, 창체활동 안에서 실천 가능한 방식으로 제시하라.`;
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':APP.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:8000,messages:[{role:'user',content:[{type:'document',source:{type:'base64',media_type:'application/pdf',data:b64}},{type:'text',text:_prompt}]}]})});
+    imgContents.push({type:'text',text:_prompt});
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':APP.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:8000,messages:[{role:'user',content:imgContents}]})});
     const d=await res.json();ANADATA.text=(d.content[0].text||'').trim();
   }catch(e){ANADATA.text='오류: '+e.message;}
   ANADATA.loading=false;showAnalysisResult();
