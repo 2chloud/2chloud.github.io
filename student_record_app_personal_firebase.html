@@ -490,7 +490,7 @@ let FU={step:'upload', items:[], fname:'', err:'', forceType:'', date:''};
 let IMP={preview:null, err:''};
 let DR={tab:'', tabs:[], text:'', loading:false, selectedRecs:[]};
 let ANADATA=null;
-let _pdfFile=null,_pdfMaskPct=7;
+let _extractedText='';
 
 // ────────────────────── UTILS ──────────────────────
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
@@ -2386,81 +2386,107 @@ async function anaMode(mode){
     wrapMd(esc(stu?.name||'')+' — 생기부 업로드',body,'modal-lg');
   }
 }
+// ── 개인정보 마스킹 ──────────────────────────────────────
+function maskPersonalInfo(text){
+  const stu=getStu();
+  // 학생 이름 마스킹 (앱에 등록된 이름 기준)
+  if(stu?.name && stu.name.trim()){
+    const escaped=stu.name.trim().replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+    text=text.replace(new RegExp(escaped,'g'),'■■■');
+  }
+  // 학년·반·번호 패턴 (예: 1학년 2반 15번, 2-3-15, 20254321)
+  text=text.replace(/\d\s*학년\s*\d{1,2}\s*반\s*\d{1,2}\s*번/g,'■학년 ■반 ■■번');
+  // 주민등록번호 패턴
+  text=text.replace(/\d{6}[-–]\d{7}/g,'■■■■■■-■■■■■■■');
+  return text;
+}
+// ── PDF 텍스트 추출 + 분석 UI ────────────────────────────
 async function anaUpload(file){
   if(!APP.apiKey){alert('PDF 생기부 분석은 Claude API 키가 필요합니다.\n⚙ 설정에서 Claude API 키를 입력해주세요.');return;}
-  _pdfFile=file;_pdfMaskPct=7;
   const stu=getStu();
-  const body=`<p style="font-size:13px;color:var(--muted);margin-bottom:10px">각 페이지의 <strong>이름·학번 영역</strong>을 마스킹한 후 분석합니다.<br>슬라이더로 마스킹 높이를 조절하세요.</p>
-    <div id="mask-wrap" style="position:relative;border:1px solid var(--border);border-radius:8px;overflow-y:auto;margin-bottom:12px;background:#111;max-height:400px">
-      <canvas id="mask-canvas" style="width:100%;display:block"></canvas>
-      <div id="mask-bar" style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,0.82);border-top:2px solid #EF4444;transition:height .1s;height:7%"></div>
-    </div>
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
-      <span style="font-size:12px;color:var(--muted);white-space:nowrap">마스킹 높이</span>
-      <input type="range" id="mask-slider" min="2" max="25" value="7" style="flex:1" oninput="updateMaskBar(this.value)">
-      <span id="mask-pct" style="font-size:12px;font-weight:700;color:#EF4444;width:34px">7%</span>
-    </div>
-    <p style="font-size:11px;color:var(--soft);margin-bottom:14px">※ 이름·학번이 완전히 가려지도록 조절하세요. 마스킹 영역은 모든 페이지에 동일하게 적용됩니다.</p>
-    <div class="modal-foot">
-      <button class="btn btn-sec" onclick="showAnalysisMenu()">← 뒤로</button>
-      <button class="btn btn-pri" onclick="doMaskedAnalysis()">🔒 마스킹 후 분석</button>
-    </div>`;
-  wrapMd(esc(stu?.name||'')+' — 개인정보 마스킹',body,'modal-lg');
-  // 첫 페이지 미리보기 렌더링
+  // 로딩 UI
+  wrapMd(esc(stu?.name||'')+' — 생기부 분석',
+    `<div style="text-align:center;padding:40px 20px">
+       <div style="font-size:32px;margin-bottom:12px">📄</div>
+       <div style="font-size:14px;color:var(--muted)">텍스트 추출 중…</div>
+     </div>`,'modal-lg');
   try{
     pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     const ab=await file.arrayBuffer();
     const pdf=await pdfjsLib.getDocument({data:ab}).promise;
-    const page=await pdf.getPage(1);
-    const vp=page.getViewport({scale:1.5});
-    const canvas=document.getElementById('mask-canvas');
-    if(!canvas)return;
-    canvas.width=vp.width;canvas.height=vp.height;
-    await page.render({canvasContext:canvas.getContext('2d'),viewport:vp}).promise;
-    // 초기 마스킹 바 높이를 캔버스 기준으로 재계산
-    updateMaskBar(_pdfMaskPct);
-    // 하단(개인정보 위치)이 보이도록 스크롤
-    const wrap=document.getElementById('mask-wrap');
-    if(wrap) wrap.scrollTop=wrap.scrollHeight;
-  }catch(e){console.warn('PDF preview error',e);}
-}
-function updateMaskBar(val){
-  _pdfMaskPct=parseInt(val);
-  const pct=document.getElementById('mask-pct');if(pct)pct.textContent=val+'%';
-  const bar=document.getElementById('mask-bar');
-  const canvas=document.getElementById('mask-canvas');
-  if(bar&&canvas){
-    // 캔버스 실제 렌더 높이(px) 기준으로 마스킹 높이 계산 → 화면에 표시되는 비율로 변환
-    const canvasH=canvas.offsetHeight||canvas.height;
-    bar.style.height=(canvasH*parseInt(val)/100)+'px';
-  }
-}
-async function doMaskedAnalysis(){
-  if(!_pdfFile||!APP.apiKey)return;
-  const stu=getStu();
-  const deptPart=stu.dept?`희망 계열/학과: ${stu.dept}\n`:'';
-  ANADATA={loading:true,text:''};showAnalysisResult();
-  try{
-    pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    const ab=await _pdfFile.arrayBuffer();
-    const pdf=await pdfjsLib.getDocument({data:ab}).promise;
-    const imgContents=[];
+    let fullText='';
     for(let i=1;i<=pdf.numPages;i++){
       const page=await pdf.getPage(i);
-      const vp=page.getViewport({scale:1.8});
-      const canvas=document.createElement('canvas');
-      canvas.width=vp.width;canvas.height=vp.height;
-      const ctx=canvas.getContext('2d');
-      await page.render({canvasContext:ctx,viewport:vp}).promise;
-      // 마스킹 적용 (하단)
-      const mh=Math.floor(canvas.height*_pdfMaskPct/100);
-      ctx.fillStyle='#000000';ctx.fillRect(0,canvas.height-mh,canvas.width,mh);
-      const b64=canvas.toDataURL('image/jpeg',0.88).split(',')[1];
-      imgContents.push({type:'image',source:{type:'base64',media_type:'image/jpeg',data:b64}});
+      const tc=await page.getTextContent();
+      // 같은 줄 아이템은 공백으로, 줄 바꿈 아이템은 줄바꿈으로 연결
+      let lineY=null, pageText='';
+      tc.items.forEach(it=>{
+        if(!it.str)return;
+        const y=Math.round(it.transform[5]);
+        if(lineY!==null && Math.abs(y-lineY)>4) pageText+='\n';
+        else if(pageText&&!pageText.endsWith('\n')) pageText+=' ';
+        pageText+=it.str;
+        lineY=y;
+      });
+      fullText+=`\n\n--- ${i}페이지 ---\n`+pageText.trim();
     }
-    const _prompt=`너는 학생부종합전형, 학생부교과전형, 2022 개정교육과정, 2028학년도 대입을 이해하는 진로진학 전문 교사다.
+    // 개인정보 마스킹
+    fullText=maskPersonalInfo(fullText.trim());
+    _extractedText=fullText;
+    showExtractUI(fullText);
+  }catch(e){
+    console.error('PDF 추출 오류',e);
+    wrapMd('오류',`<p>텍스트 추출에 실패했습니다.<br><small style="color:var(--muted)">${e.message}</small></p><div class="modal-foot"><button class="btn btn-sec" onclick="showAnalysisMenu()">← 뒤로</button></div>`,'modal-sm');
+  }
+}
+function showExtractUI(text){
+  const stu=getStu();
+  const lineCount=(text.match(/\n/g)||[]).length+1;
+  const body=`
+    <p style="font-size:13px;color:var(--muted);margin-bottom:10px">
+      이름·학번이 자동으로 마스킹되었습니다. 내용을 확인하고 분석 유형을 선택하세요.
+    </p>
+    <div style="font-size:11px;color:var(--soft);margin-bottom:8px">추출 ${lineCount}줄 · 직접 수정 가능</div>
+    <textarea id="ext-text" style="width:100%;height:220px;font-size:11px;font-family:monospace;border:1px solid var(--border);border-radius:8px;padding:10px;resize:vertical;background:var(--card)">${esc(text)}</textarea>
+    <p style="font-size:11px;color:var(--soft);margin:8px 0 14px">※ 분석 전 이름·학번이 남아있는지 확인하세요.</p>
+    <div style="display:grid;gap:8px;margin-bottom:4px">
+      <button class="btn btn-pri" style="justify-content:flex-start;text-align:left;padding:12px 16px" onclick="doAnalysis('full')">
+        <span style="font-size:15px">📋</span>
+        <span style="margin-left:8px"><strong>전체 분석</strong><span style="font-size:11px;color:rgba(255,255,255,0.75);display:block">학종 평가요소 전체 · 상세 보완 전략</span></span>
+      </button>
+      <button class="btn" style="background:var(--card);border:1.5px solid var(--border);justify-content:flex-start;text-align:left;padding:12px 16px" onclick="doAnalysis('activity')">
+        <span style="font-size:15px">✏️</span>
+        <span style="margin-left:8px"><strong>수행평가·세특 주제 추천</strong><span style="font-size:11px;color:var(--muted);display:block">추천 과목·주제·탐구 질문·세특 반영 포인트</span></span>
+      </button>
+      <button class="btn" style="background:var(--card);border:1.5px solid var(--border);justify-content:flex-start;text-align:left;padding:12px 16px" onclick="doAnalysis('career')">
+        <span style="font-size:15px">🧭</span>
+        <span style="margin-left:8px"><strong>진로 미정 방향 찾기</strong><span style="font-size:11px;color:var(--muted);display:block">잠재 관심 계열 후보 · 근거 · 탐색 활동</span></span>
+      </button>
+      <button class="btn" style="background:var(--card);border:1.5px solid var(--border);justify-content:flex-start;text-align:left;padding:12px 16px" onclick="doAnalysis('summary')">
+        <span style="font-size:15px">⚡</span>
+        <span style="margin-left:8px"><strong>빠른 요약</strong><span style="font-size:11px;color:var(--muted);display:block">강점 3 · 보완점 3 · 추천 활동 3</span></span>
+      </button>
+    </div>
+    <div class="modal-foot" style="margin-top:12px">
+      <button class="btn btn-sec" onclick="showAnalysisMenu()">← 뒤로</button>
+    </div>`;
+  wrapMd(esc(stu?.name||'')+' — 생기부 분석',body,'modal-lg');
+}
+async function doAnalysis(mode){
+  if(!APP.apiKey)return;
+  // textarea에서 최신 텍스트 읽기 (직접 수정 반영)
+  const ta=document.getElementById('ext-text');
+  const text=ta?ta.value:_extractedText;
+  if(!text.trim()){alert('추출된 텍스트가 없습니다.');return;}
+  const stu=getStu();
+  const deptPart=stu?.dept?`희망 계열/학과: ${stu.dept}\n`:'';
+  ANADATA={loading:true,text:''};showAnalysisResult();
+  try{
+    let prompt='';
+    if(mode==='full'){
+      prompt=`너는 학생부종합전형, 학생부교과전형, 2022 개정교육과정, 2028학년도 대입을 이해하는 진로진학 전문 교사다.
 
-지금부터 업로드된 학생의 학교생활기록부를 분석해 줘.
+지금부터 아래 학교생활기록부 텍스트를 분석해 줘.
 
 [분석 대상 조건]
 ${deptPart}- 대상 학생은 2026학년도 고등학교 2학년이며, 2022 개정교육과정 적용 학생이다.
@@ -2765,10 +2791,105 @@ D. 창체 프로젝트형 활동 참고
 - 교사의 상담 보고서처럼 작성하라.
 - 과장 없이 명확하게, 이유를 반드시 설명하라.
 - 단정적 합격 예측, 대학 수준 예측, 등급컷 예측은 하지 마라.
-- 활동 추천은 반드시 교내 수업, 수행평가, 창체활동 안에서 실천 가능한 방식으로 제시하라.`;
-    imgContents.push({type:'text',text:_prompt});
-    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':APP.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:8000,messages:[{role:'user',content:imgContents}]})});
-    const d=await res.json();ANADATA.text=(d.content[0].text||'').trim();
+- 활동 추천은 반드시 교내 수업, 수행평가, 창체활동 안에서 실천 가능한 방식으로 제시하라.
+
+---
+[학교생활기록부 텍스트]
+${text}`;
+    } else if(mode==='activity'){
+      prompt=`너는 2022 개정교육과정과 2028 대입 학종을 이해하는 진로진학 전문 교사다.
+아래 학생의 학교생활기록부를 바탕으로 2학년 수행평가·세특 주제를 추천해줘.
+${deptPart}
+[조건]
+- 교내 수업·수행평가·창체활동 범위 안에서만 추천 (병원·기관·전문가 방문 금지)
+- 2022 개정교육과정 과목명 기준
+- 기존 기록과 자연스럽게 연결되는 주제 우선
+- 학생이 직접 수집 가능한 로우데이터 포함
+
+[출력 형식]
+## 수행평가·세특 주제 추천
+
+### 추천 주제 1~5 (각 주제마다)
+- **추천 과목/활동:**
+- **주제:**
+- **기존 기록과의 연결점:**
+- **탐구 질문:**
+- **직접 수집 가능한 자료:**
+- **세특 반영 포인트:**
+- **관련 평가요소:**
+
+---
+[학교생활기록부 텍스트]
+${text}`;
+    } else if(mode==='career'){
+      prompt=`너는 2022 개정교육과정과 2028 대입 학종을 이해하는 진로진학 전문 교사다.
+아래 학생은 희망 진로가 명확하지 않거나 탐색 중이다.
+학교생활기록부를 분석해서 잠재적 관심 방향을 찾아줘.
+${deptPart}
+[조건]
+- 학생부 기록(세특·창체·독서 등)에서 반복되는 관심 키워드를 찾아라
+- 진로를 단정하지 말고 '가능성 있는 방향'으로 제시하라
+- 교내에서 해볼 수 있는 탐색 활동만 추천하라
+
+[출력 형식]
+## 진로 탐색 분석
+
+### 현재 기록에서 드러나는 관심 키워드 (3~5개)
+
+### 잠재 관심 계열 후보
+각 후보마다:
+- **계열/방향:**
+- **근거 (학생부 기록 기반):**
+- **연결되는 강점:**
+- **2학년 탐색 활동 추천 (교내):**
+
+### 현재 기록의 한계 및 추가 탐색 필요 항목
+
+### 2학년 방향 제안 (교내 활동 중심)
+
+---
+[학교생활기록부 텍스트]
+${text}`;
+    } else if(mode==='summary'){
+      prompt=`너는 진로진학 전문 교사다.
+아래 학생의 학교생활기록부를 읽고 핵심만 간결하게 정리해줘.
+${deptPart}
+[조건]
+- 항목당 1~2문장으로 압축
+- 합격 예측, 대학 수준 단정 금지
+- 활동 추천은 교내에서 가능한 것만
+
+[출력 형식]
+## 생기부 빠른 요약
+
+### ✅ 강점 3가지
+1.
+2.
+3.
+
+### 🔧 보완점 3가지
+1.
+2.
+3.
+
+### 🎯 추천 활동 3가지 (교내)
+1.
+2.
+3.
+
+### 💬 한줄 총평
+
+---
+[학교생활기록부 텍스트]
+${text}`;
+    }
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':APP.apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:8000,messages:[{role:'user',content:[{type:'text',text:prompt}]}]})
+    });
+    const d=await res.json();
+    ANADATA.text=(d.content?.[0]?.text||d.error?.message||'응답 없음').trim();
   }catch(e){ANADATA.text='오류: '+e.message;}
   ANADATA.loading=false;showAnalysisResult();
 }
