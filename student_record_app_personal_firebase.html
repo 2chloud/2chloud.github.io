@@ -1693,7 +1693,7 @@ function wrapMd(title,body,sz=''){
       <div class="modal-body">${body}</div>
     </div></div>`;
 }
-function ovClick(e){if(e.target===e.currentTarget)closeMd();}
+function ovClick(e){if(e.target===e.currentTarget&&!ANADATA?.loading)closeMd();}
 
 // ────────────────────── ADD RECORD ──────────────────────
 function showAdd(){
@@ -2421,8 +2421,8 @@ async function anaMode(mode){
     ANADATA={loading:true,text:''};showAnalysisResult();
     try{
       ANADATA.text=(await callAI(`학생: ${stu.name}\n${deptPart}${subjectsPart}2022 개정교육과정 적용, 2028학년도 대입 기준\n\n활동 기록:\n${txt}\n\n위 기록을 2022 개정교육과정과 2028 대입 학종 평가 관점에서 분석해주세요.\n\n[보완 활동 제약 — 강력 적용, 예외 없음]\n추천 가능한 활동은 아래 목록 안에서만 제안하세요. 이 외의 활동은 절대 추천하지 마세요.\n\n▶ 허용: 교내 수업·세특·수행평가, 교내 동아리·자율·진로·행사, 독서·탐구보고서, 공동교육과정(교육청 주관), 대학 연계 수업(교육청 주관)\n▶ 절대 금지: 병원·기관 방문, 교외 봉사(요양원·복지관 등), 현직자 멘토링·인터뷰, 자격증 취득, 대학 캠프·오픈랩, 산업체 연계, 해외 활동, 학교 밖 개인 활동 일체\n\n[분석 항목]\n1. 학업역량: 과목 이수 배경, 수업 참여, 탐구 역량, 세특 질 현황 및 보완점\n2. 진로역량: 계열 권장과목 이수 일관성, 진로 탐색 깊이, 과목 선택 스토리\n3. 공동체역량: 교내 봉사·협력 활동 현황 및 보완점 (교내에서 가능한 활동 중심)\n4. 과정 중심 서사 평가\n5. 2028 대입 대비 우선 보완 활동 추천 3가지 (고교 내 실현 가능한 것만)\n${stu.dept?`\n※ ${stu.dept} 계열 지원 기준으로 분석해주세요.`:''}`,1500)).trim();
-    }catch(e){ANADATA.text='오류: '+e.message;}
-    ANADATA.loading=false;showAnalysisResult();
+    }catch(e){if(ANADATA)ANADATA.text='오류: '+e.message;}
+    if(ANADATA){ANADATA.loading=false;showAnalysisResult();}
   } else {
     // upload mode
     const body=`<p style="font-size:13px;color:var(--muted);margin-bottom:14px">현재 생기부 PDF를 업로드하세요.</p>
@@ -3393,9 +3393,9 @@ ${text}`;
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:8000,messages:[{role:'user',content:[{type:'text',text:prompt}]}]})
     });
     const d=await res.json();
-    ANADATA.text=(d.content?.[0]?.text||d.error?.message||'응답 없음').trim();
-  }catch(e){ANADATA.text='오류: '+e.message;}
-  ANADATA.loading=false;showAnalysisResult();
+    if(ANADATA)ANADATA.text=(d.content?.[0]?.text||d.error?.message||'응답 없음').trim();
+  }catch(e){if(ANADATA)ANADATA.text='오류: '+e.message;}
+  if(ANADATA){ANADATA.loading=false;showAnalysisResult();}
 }
 
 // ────────────────────── INIT ──────────────────────
