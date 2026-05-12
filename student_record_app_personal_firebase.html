@@ -2452,9 +2452,12 @@ async function extractPdfText(file){
 }
 // ── 학생 생기부 텍스트 저장 ──────────────────────────────
 function saveRecordText(cid,sid,text){
-  if(!APP.students[cid]||!APP.students[cid][sid])return;
-  APP.students[cid][sid].recordText=text;
-  APP.students[cid][sid].recordTextDate=new Date().toISOString().slice(0,7);
+  const arr=APP.students[cid];
+  if(!Array.isArray(arr))return;
+  const stu=arr.find(s=>s.id===sid);
+  if(!stu)return;
+  stu.recordText=text;
+  stu.recordTextDate=new Date().toISOString().slice(0,7);
   saveData();
 }
 // ── PDF 텍스트 추출 + 분석 UI ────────────────────────────
