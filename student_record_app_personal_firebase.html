@@ -537,6 +537,17 @@ const badge=t=>`<span class="bdg bdg-${t}">${t}</span>`;
 const tcol=t=>({자율:'#1D4ED8',진로:'#6D28D9',행동특성:'#065F46',상담메모:'#92400E',교과:'#1E293B'}[t]||'#6B7280');
 
 // ────────────────────── STORAGE ──────────────────────
+// recordText를 제거한 students 사본 반환 (Firestore 1MB 한도 초과 방지)
+function _studentsWithoutText(){
+  const out={};
+  Object.keys(APP.students).forEach(cid=>{
+    out[cid]=(APP.students[cid]||[]).map(s=>{
+      const {recordText,recordTextDate,...rest}=s;
+      return rest;
+    });
+  });
+  return out;
+}
 async function loadData(){
   if(!_uid)return;
   try{
@@ -557,13 +568,25 @@ async function loadData(){
       if(SEED[k])APP.students[c.id]=SEED[k].map(s=>({...s,id:uid()}));
     }
   });
+  // 생기부 텍스트 서브컬렉션에서 로드 후 학생 객체에 병합
+  try{
+    const rts=await db.collection('users').doc(_uid).collection('recordTexts').get();
+    rts.forEach(rdoc=>{
+      const {text,date}=rdoc.data();
+      Object.values(APP.students).forEach(arr=>{
+        const stu=arr.find(s=>s.id===rdoc.id);
+        if(stu){stu.recordText=text;stu.recordTextDate=date;}
+      });
+    });
+  }catch(e){console.warn('loadRecordTexts error',e);}
   await saveData();
 }
 async function saveData(){
   if(!_uid)return;
   try{
     await db.collection('users').doc(_uid).set({
-      students:APP.students,records:APP.records,hrid:APP.hrid,apiKey:APP.apiKey,
+      students:_studentsWithoutText(),  // recordText 제외로 1MB 한도 방지
+      records:APP.records,hrid:APP.hrid,apiKey:APP.apiKey,
       todos:APP.todos,contacts:APP.contacts,
       visibleCls:APP.visibleCls||null,menstrual:APP.menstrual||{},
       schoolName:APP.schoolName||'',maskExtra:APP.maskExtra||''
@@ -580,7 +603,7 @@ async function autoBackup(){
   console.log('autoBackup 시작 uid='+_uid+' date='+today());
   try{
     await db.collection('backups').doc(_uid).collection('daily').doc(today()).set({
-      students:APP.students,records:APP.records,hrid:APP.hrid,
+      students:_studentsWithoutText(),records:APP.records,hrid:APP.hrid,
       contacts:APP.contacts,visibleCls:APP.visibleCls||null,
       menstrual:APP.menstrual||{},savedAt:Date.now()
     });
@@ -601,7 +624,7 @@ async function manualBackup(){
   if(!_uid){msg.style.color='var(--red)';msg.textContent='로그인 필요';btn.disabled=false;btn.textContent='지금 백업';return;}
   try{
     await db.collection('backups').doc(_uid).collection('daily').doc(today()).set({
-      students:APP.students,records:APP.records,hrid:APP.hrid,
+      students:_studentsWithoutText(),records:APP.records,hrid:APP.hrid,
       contacts:APP.contacts,visibleCls:APP.visibleCls||null,
       menstrual:APP.menstrual||{},savedAt:Date.now()
     });
@@ -2473,15 +2496,20 @@ async function extractPdfText(file){
   }
   return fullText.trim();
 }
-// ── 학생 생기부 텍스트 저장 ──────────────────────────────
+// ── 학생 생기부 텍스트 저장 (메모리 + Firestore 서브컬렉션) ──────
 function saveRecordText(cid,sid,text){
   const arr=APP.students[cid];
   if(!Array.isArray(arr))return;
   const stu=arr.find(s=>s.id===sid);
   if(!stu)return;
+  const date=new Date().toISOString().slice(0,7);
   stu.recordText=text;
-  stu.recordTextDate=new Date().toISOString().slice(0,7);
-  saveData();
+  stu.recordTextDate=date;
+  // 서브컬렉션에 별도 저장 (메인 문서 1MB 한도 초과 방지)
+  if(_uid){
+    db.collection('users').doc(_uid).collection('recordTexts').doc(sid)
+      .set({text,date}).catch(e=>console.warn('saveRecordText error',e));
+  }
 }
 // ── PDF 텍스트 추출 + 분석 UI ────────────────────────────
 async function anaUpload(file){
