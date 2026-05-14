@@ -608,7 +608,7 @@ async function autoBackup(){
       menstrual:APP.menstrual||{},savedAt:Date.now()
     });
     // 30일 초과 백업 자동 삭제
-    const cutoff=new Date();cutoff.setDate(cutoff.getDate()-30);
+    const cutoff=new Date();cutoff.setDate(cutoff.getDate()-7);
     const cutStr=cutoff.toISOString().slice(0,10);
     const old=await db.collection('backups').doc(_uid).collection('daily')
       .where(firebase.firestore.FieldPath.documentId(),'<',cutStr).get();
