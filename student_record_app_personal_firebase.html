@@ -448,9 +448,12 @@ input[type=date].has-val{background:var(--blue-l);border-color:#93C5FD}
     <div class="login-notice">개인 계정(@gmail.com) 사용을 권장합니다.</div>
   </div>
 </div>
-<div id="app" class="app" style="display:none">
-  <div class="sb" id="sidebar"></div>
-  <div class="main" id="main"></div>
+<div id="app" class="app" style="display:none;flex-direction:column">
+  <div style="display:flex;flex:1;overflow:hidden">
+    <div class="sb" id="sidebar"></div>
+    <div class="main" id="main"></div>
+  </div>
+  <footer style="text-align:center;padding:6px;font-size:10px;color:var(--soft);letter-spacing:.04em;background:var(--bg);border-top:1px solid var(--border);flex-shrink:0">made by 2choong</footer>
 </div>
 <div id="ov"></div>
 <script>
