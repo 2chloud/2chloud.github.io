@@ -2499,6 +2499,28 @@ async function extractPdfText(file){
   }
   return fullText.trim();
 }
+// ── 학종 미반영 섹션 제거 ───────────────────────────────────────
+function stripNonHakjongSections(text){
+  // 삭제 대상: 대입 미반영 항목
+  const REMOVE=['수상경력','자격증 및 인증 취득상황','자격증및인증취득상황',
+    '진로희망사항','독서활동상황','출결상황','학적사항','인적사항'];
+  // 유지 대상: 학종 반영 항목
+  const KEEP=['창의적 체험활동상황','창의적체험활동상황',
+    '교과학습발달상황','행동특성 및 종합의견','행동특성및종합의견'];
+  const ALL=[...REMOVE,...KEEP];
+  const norm=s=>s.trim().replace(/\s+/g,'');
+  const matchHeader=line=>ALL.find(h=>norm(line)===norm(h));
+  const isKeep=line=>KEEP.some(h=>norm(line)===norm(h));
+  const lines=text.split('\n');
+  let keep=true;
+  const out=[];
+  for(const line of lines){
+    const header=matchHeader(line);
+    if(header){keep=isKeep(line);if(keep)out.push(line);}
+    else if(keep)out.push(line);
+  }
+  return out.join('\n').trim();
+}
 // ── 학생 생기부 텍스트 저장 (메모리 + Firestore 서브컬렉션) ──────
 function saveRecordText(cid,sid,text){
   const arr=APP.students[cid];
@@ -2525,7 +2547,7 @@ async function anaUpload(file){
      </div>`,'modal-lg');
   try{
     const raw=await extractPdfText(file);
-    const fullText=maskPersonalInfo(raw);
+    const fullText=maskPersonalInfo(stripNonHakjongSections(raw));
     saveRecordText(UI.cid,UI.sid,fullText);
     _extractedText=fullText;
     showExtractUI(fullText);
@@ -2602,7 +2624,7 @@ async function processBatchPdfs(fileList){
     if(!stu){unmatched.push(name);continue;}
     try{
       const raw=await extractPdfText(file);
-      const masked=maskPersonalInfo(raw,stu);
+      const masked=maskPersonalInfo(stripNonHakjongSections(raw),stu);
       saveRecordText(UI.cid,stu.id,masked);
       matched.push(name);
     }catch(e){unmatched.push(name+' (오류: '+e.message+')');}
