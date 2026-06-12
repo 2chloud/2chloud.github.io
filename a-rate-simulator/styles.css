@@ -201,7 +201,10 @@ tr.current { background: #edf8f4; font-weight: 800; }
 footer { max-width: 1180px; border-top: 1px solid #d7dfdd; margin: 0 auto; padding: 24px; color: #77888a; font-size: 12px; display: flex; justify-content: space-between; }
 footer p { margin: 0; }
 .footer-notice { display: flex; justify-content: space-between; gap: 24px; flex: 1; }
-.site-credit { margin-left: 28px; color: #a4afae; font-size: 8px; letter-spacing: .04em; white-space: nowrap; align-self: flex-end; }
+.site-credit { flex: 0 0 auto; min-width: 82px; margin-left: 28px; padding: 7px 10px 6px; border: 1.5px solid rgba(13,112,109,.55); border-radius: 8px; color: var(--teal); text-align: center; line-height: 1.05; transform: rotate(-1.5deg); align-self: center; }
+.site-credit small, .site-credit strong { display: block; }
+.site-credit small { font-size: 9px; font-weight: 700; letter-spacing: .08em; opacity: .72; }
+.site-credit strong { margin-top: 3px; font-size: 14px; font-weight: 900; letter-spacing: .025em; }
 
 @media (max-width: 900px) {
   .hero { padding-bottom: 70px; }
@@ -238,5 +241,5 @@ footer p { margin: 0; }
   .neis-guide li:not(:last-child)::after { content: "↓"; }
   .neis-guide { margin-left: 0; }
   footer, .footer-notice { flex-direction: column; gap: 7px; }
-  .site-credit { margin: 8px 0 0; align-self: flex-start; }
+  .site-credit { margin: 10px 0 0; align-self: flex-start; }
 }
