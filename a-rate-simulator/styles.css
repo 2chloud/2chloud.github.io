@@ -50,11 +50,7 @@ h1 { margin: 0; font-family: inherit; font-size: clamp(28px, 3.2vw, 40px); font-
 .layout { max-width: 1240px; margin: -30px auto 44px; padding: 0 20px; display: grid; grid-template-columns: minmax(360px, .82fr) minmax(0, 1.18fr); gap: 16px; position: relative; z-index: 2; align-items: start; }
 .panel { background: var(--white); border: 1px solid rgba(24,70,70,.09); border-radius: 9px; box-shadow: 0 7px 24px rgba(24,58,58,.055); padding: 20px; }
 .upload-panel, .assessment-panel { grid-column: 1 / -1; }
-.upload-panel { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(300px, .75fr); gap: 0 16px; }
-.upload-panel > .section-heading, .upload-panel > .score-stats { grid-column: 1 / -1; }
-.upload-panel > .dropzone { grid-column: 2; grid-row: 2; min-height: 100%; }
-.upload-panel > .file-status, .upload-panel > .text-button { grid-column: 2; }
-.upload-panel > .neis-guide { grid-column: 1; grid-row: 2 / span 3; margin-bottom: 0; }
+.upload-panel { display: block; }
 .scenario-panel { grid-column: 1; }
 .results-column { grid-column: 2; min-width: 0; }
 .section-heading { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 14px; }
@@ -63,14 +59,14 @@ h1 { margin: 0; font-family: inherit; font-size: clamp(28px, 3.2vw, 40px); font-
 .section-heading p, .table-heading p { margin: 3px 0 0; font-size: 13px; color: var(--muted); }
 .step { flex: 0 0 auto; display: grid; place-items: center; width: 29px; height: 29px; border-radius: 50%; background: var(--mint); color: var(--teal); font-size: 12px; font-weight: 900; }
 .dropzone { display: flex; min-height: 112px; border: 1.5px dashed #9fb9b5; background: #f8fbf9; border-radius: 8px; align-items: center; justify-content: center; flex-direction: column; cursor: pointer; transition: .2s ease; }
-.neis-guide { margin-bottom: 12px; padding: 12px 14px; border: 1px solid #cfe0dc; border-radius: 8px; background: #f3f9f6; }
+.neis-guide { margin: -2px 0 14px 39px; }
 .neis-guide__title { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .neis-guide__title strong { font-size: 14px; color: var(--teal-dark); }
-.neis-guide__title span { flex: 0 0 auto; padding: 4px 7px; border-radius: 4px; background: var(--teal); color: white; font-size: 11px; font-weight: 900; }
-.neis-guide ol { display: flex; flex-wrap: wrap; gap: 6px; margin: 13px 0 0; padding: 0; list-style: none; counter-reset: path; }
+.neis-guide__title span { flex: 0 0 auto; padding: 3px 7px; border-radius: 4px; background: var(--mint); color: var(--teal-dark); font-size: 11px; font-weight: 900; }
+.neis-guide ol { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; padding: 0; list-style: none; counter-reset: path; }
 .neis-guide li { display: flex; align-items: center; color: #36575a; font-size: 12px; font-weight: 700; }
 .neis-guide li:not(:last-child)::after { content: "›"; margin-left: 6px; color: #8ba39f; font-size: 14px; }
-.neis-guide p { margin: 7px 0 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
+.neis-guide p { margin: 6px 0 0; color: var(--muted); font-size: 12px; line-height: 1.45; }
 .save-step { gap: 5px; }
 .save-icon { display: inline-flex; align-items: center; height: 24px; padding: 2px 3px 2px 4px; border: 1px solid #c9cecc; border-radius: 3px; background: linear-gradient(#fff, #f6f6f6); box-shadow: 0 1px 1px rgba(0,0,0,.05); }
 .save-icon svg { width: 18px; height: 18px; fill: #f8f8f8; stroke: #222; stroke-width: 1.2; stroke-linejoin: round; }
@@ -207,7 +203,6 @@ footer p { margin: 0; }
   .layout { grid-template-columns: 1fr; }
   .privacy-badge { min-width: 0; }
   .upload-panel, .assessment-panel, .scenario-panel, .results-column { grid-column: 1; }
-  .upload-panel { display: block; }
   .upload-panel > .dropzone { min-height: 140px; }
   .upload-panel > .neis-guide { margin-bottom: 16px; }
   .performance-area { grid-template-columns: 1.4fr repeat(2, 1fr); }
@@ -235,6 +230,7 @@ footer p { margin: 0; }
   .neis-guide ol { display: block; }
   .neis-guide li { margin-top: 5px; }
   .neis-guide li:not(:last-child)::after { content: "↓"; }
+  .neis-guide { margin-left: 0; }
   footer, .footer-notice { flex-direction: column; gap: 7px; }
   .site-credit { margin: 8px 0 0; align-self: flex-start; }
 }
