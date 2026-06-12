@@ -174,7 +174,7 @@
     element.classList.toggle("error", error);
   }
 
-  function loadExamRows(rows, fileName, format = "행 단위 명단형") {
+  function loadExamRows(rows, fileName, formatLabel = "행 단위 명단형") {
     if (!rows.length) throw new Error("학생 데이터가 없습니다.");
     state.columns = Object.keys(rows[0]);
     const idColumn = findColumn(
@@ -200,7 +200,7 @@
     $("exam1Count").textContent = state.rows.length.toLocaleString("ko-KR");
     $("exam1Mean").textContent = format(stats.mean, 1);
     $("exam1Sd").textContent = format(stats.sd, 1);
-    showStatus("fileStatus", `${fileName} · ${format} · ${state.rows.length.toLocaleString("ko-KR")}명 자동 분석 완료`);
+    showStatus("fileStatus", `${fileName} · ${formatLabel} · ${state.rows.length.toLocaleString("ko-KR")}명 자동 분석 완료`);
     render();
   }
 
