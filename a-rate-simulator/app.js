@@ -13,7 +13,7 @@
   const numericIds = [
     "exam1Max", "exam2Max",
     "exam1AB", "exam2AB",
-    "adjustment", "targetMean", "targetSd",
+    "meanAdjustment",
     "rangeStart", "rangeEnd", "rangeStep",
   ];
 
@@ -176,23 +176,31 @@
 
   function loadExamRows(rows, fileName, format = "행 단위 명단형") {
     if (!rows.length) throw new Error("학생 데이터가 없습니다.");
-    state.rows = rows;
     state.columns = Object.keys(rows[0]);
-    setOptions($("studentIdColumn"), state.columns);
-    setOptions($("exam1Column"), state.columns);
-    setOptions($("exam2Column"), state.columns, true);
-    $("studentIdColumn").value = findColumn(
+    const idColumn = findColumn(
       state.columns, ["studentid", "student_id", "id", "학번", "학생식별값"]
     ) || state.columns[0];
-    $("exam1Column").value = findColumn(
+    const scoreColumn = findColumn(
       state.columns, ["exam1", "1차", "1차점수", "1차정기시험"]
-    ) || state.columns[Math.min(1, state.columns.length - 1)];
-    $("exam2Column").value = findColumn(
-      state.columns, ["exam2_expected", "exam2expected", "exam2", "2차예상점수"]
-    ) || "";
-    $("mappingSection").hidden = false;
-    $("rowCountBadge").textContent = `${rows.length.toLocaleString("ko-KR")}개 행`;
-    showStatus("fileStatus", `${fileName} · ${format} · 유효 점수 ${rows.length.toLocaleString("ko-KR")}명`);
+    );
+    if (!scoreColumn) {
+      throw new Error("1차 점수 열을 자동으로 찾지 못했습니다. NEIS 교과목별 일람표를 사용해 주세요.");
+    }
+    state.rows = rows.flatMap((row, index) => {
+      const exam1 = finiteNumber(row[scoreColumn]);
+      if (!Number.isFinite(exam1)) return [];
+      return [{
+        studentId: normalizeId(row[idColumn]) || `row-${index + 1}`,
+        exam1,
+      }];
+    });
+    if (!state.rows.length) throw new Error("유효한 1차 점수를 찾지 못했습니다.");
+    const stats = exam1Statistics(state.rows);
+    $("scoreStats").hidden = false;
+    $("exam1Count").textContent = state.rows.length.toLocaleString("ko-KR");
+    $("exam1Mean").textContent = format(stats.mean, 1);
+    $("exam1Sd").textContent = format(stats.sd, 1);
+    showStatus("fileStatus", `${fileName} · ${format} · ${state.rows.length.toLocaleString("ko-KR")}명 자동 분석 완료`);
     render();
   }
 
@@ -212,14 +220,8 @@
       exam1AB: number("exam1AB"),
       exam2AB: number("exam2AB"),
       performanceAreas,
-      method: document.querySelector('input[name="method"]:checked').value,
-      adjustment: number("adjustment"),
-      targetMean: number("targetMean"),
-      targetSd: number("targetSd"),
-      uncertaintySd: number("uncertaintySd"),
-      studentIdColumn: $("studentIdColumn").value,
-      exam1Column: $("exam1Column").value,
-      exam2Column: $("exam2Column").value,
+      meanAdjustment: number("meanAdjustment"),
+      spreadFactor: Number(document.querySelector('input[name="spreadFactor"]:checked').value),
     };
   }
 
@@ -229,10 +231,10 @@
 
   function cleanStudents(config) {
     return state.rows.flatMap((row, index) => {
-      const id = normalizeId(row[config.studentIdColumn]) || `row-${index + 1}`;
-      const exam1 = finiteNumber(row[config.exam1Column]);
+      const id = normalizeId(row.studentId) || `row-${index + 1}`;
+      const exam1 = finiteNumber(row.exam1);
       if (!Number.isFinite(exam1)) return [];
-      return [{ id, exam1, row }];
+      return [{ id, exam1 }];
     });
   }
 
@@ -243,25 +245,21 @@
     );
   }
 
-  function generateExam2(students, config) {
+  function exam1Statistics(students) {
     const mean = students.reduce((sum, student) => sum + student.exam1, 0) / students.length;
     const sd = standardDeviation(students.map((student) => student.exam1), mean);
+    return { mean, sd };
+  }
 
-    return students.map((student) => {
-      let exam2;
-      if (config.method === "same") {
-        exam2 = student.exam1;
-      } else if (config.method === "adjust") {
-        exam2 = student.exam1 + config.adjustment;
-      } else if (config.method === "distribution") {
-        exam2 = sd === 0
-          ? config.targetMean
-          : config.targetMean + ((student.exam1 - mean) / sd) * config.targetSd;
-      } else {
-        exam2 = finiteNumber(student.row[config.exam2Column]);
-      }
-      return { ...student, exam2: clamp(exam2, 0, config.exam2Max) };
-    }).filter((student) => Number.isFinite(student.exam2));
+  function targetDistribution(students, config) {
+    const stats = exam1Statistics(students);
+    const scale = config.exam2Max / config.exam1Max;
+    return {
+      exam1Mean: stats.mean,
+      exam1Sd: stats.sd,
+      mean: clamp(stats.mean * scale + config.meanAdjustment, 0, config.exam2Max),
+      sd: Math.max(0, stats.sd * scale * config.spreadFactor),
+    };
   }
 
   function seededRandom(seed) {
@@ -283,6 +281,9 @@
 
   function buildTrialScores(students, config) {
     const random = seededRandom(20260612);
+    const distribution = targetDistribution(students, config);
+    const correlation = 0.8;
+    const residualScale = Math.sqrt(1 - correlation ** 2);
     const performanceScore = config.performanceAreas.reduce((sum, area) =>
       sum + (clamp(area.expected, 0, area.max) / area.max * area.weight), 0
     );
@@ -290,16 +291,24 @@
       (student.exam1 / config.exam1Max * config.exam1Weight)
       + performanceScore
     );
-    return Array.from({ length: SIMULATION_COUNT }, () =>
-      students.map((student, index) => {
+    return Array.from({ length: SIMULATION_COUNT }, () => {
+      const latentScores = students.map((student) => {
+        const zScore = distribution.exam1Sd > 0
+          ? (student.exam1 - distribution.exam1Mean) / distribution.exam1Sd
+          : 0;
+        return correlation * zScore + residualScale * normalRandom(random);
+      });
+      const latentMean = latentScores.reduce((sum, value) => sum + value, 0) / latentScores.length;
+      const latentSd = standardDeviation(latentScores, latentMean) || 1;
+      return latentScores.map((latentScore, index) => {
         const exam2 = clamp(
-          student.exam2 + normalRandom(random) * config.uncertaintySd,
+          distribution.mean + distribution.sd * ((latentScore - latentMean) / latentSd),
           0,
           config.exam2Max
         );
         return fixedScores[index] + (exam2 / config.exam2Max * config.exam2Weight);
-      }).sort((a, b) => a - b)
-    );
+      }).sort((a, b) => a - b);
+    });
   }
 
   function finalCut(config, exam2AB = config.exam2AB) {
@@ -403,17 +412,11 @@
     if (students.some((student) => student.exam1 < 0 || student.exam1 > config.exam1Max)) {
       return "1차 점수 파일에 0점 미만 또는 입력한 만점 초과 점수가 있습니다.";
     }
-    if (config.method === "direct" && !config.exam2Column) {
-      return "직접 입력 방식에는 2차 예상점수 컬럼을 선택해야 합니다.";
+    if (!Number.isFinite(config.meanAdjustment)) {
+      return "2차 평균 변화값을 입력해 주세요.";
     }
-    if (config.method === "adjust" && !Number.isFinite(config.adjustment)) {
-      return "2차 점수 조정값을 입력해 주세요.";
-    }
-    if (
-      config.method === "distribution"
-      && (!Number.isFinite(config.targetMean) || !Number.isFinite(config.targetSd) || config.targetSd < 0)
-    ) {
-      return "2차 예상 평균과 0 이상의 표준편차를 입력해 주세요.";
+    if (!Number.isFinite(config.spreadFactor) || config.spreadFactor <= 0) {
+      return "2차 점수 분포를 선택해 주세요.";
     }
     return "";
   }
@@ -555,6 +558,15 @@
     if (!state.rows.length) return;
 
     const students = cleanStudents(config);
+    if (
+      students.length
+      && Number.isFinite(config.exam1Max) && config.exam1Max > 0
+      && Number.isFinite(config.exam2Max) && config.exam2Max > 0
+    ) {
+      const target = targetDistribution(students, config);
+      $("targetMeanDisplay").textContent = format(target.mean, 1);
+      $("targetSdDisplay").textContent = format(target.sd, 1);
+    }
     const warning = validationMessage(config, students);
     $("weightValidation").textContent = warning;
     $("weightValidation").classList.toggle("error", Boolean(warning));
@@ -565,22 +577,7 @@
       return;
     }
 
-    const studentsWithExam2 = generateExam2(students, config);
-    if (config.method === "direct" && studentsWithExam2.length !== students.length) {
-      const missingCount = students.length - studentsWithExam2.length;
-      $("results").hidden = true;
-      $("emptyState").hidden = false;
-      $("emptyState").innerHTML =
-        `<span>2차 예상점수가 비어 있거나 숫자가 아닌 학생이 ${missingCount.toLocaleString("ko-KR")}명 있습니다.</span>`;
-      return;
-    }
-    if (!studentsWithExam2.length) {
-      $("results").hidden = true;
-      $("emptyState").hidden = false;
-      $("emptyState").innerHTML = "<span>유효한 2차 예상점수를 생성하지 못했습니다.</span>";
-      return;
-    }
-    const trialScores = buildTrialScores(studentsWithExam2, config);
+    const trialScores = buildTrialScores(students, config);
     const result = forecast(trialScores, config);
     const level = forecastStatus(result);
 
@@ -603,16 +600,6 @@
       ).join(" + ");
     renderRecommendation(trialScores, config);
     renderTable(trialScores, config);
-  }
-
-  function syncMethodUi() {
-    const method = document.querySelector('input[name="method"]:checked').value;
-    document.querySelectorAll(".method").forEach((element) => {
-      element.classList.toggle("active", element.querySelector("input").value === method);
-    });
-    $("adjustOptions").hidden = method !== "adjust";
-    $("distributionOptions").hidden = method !== "distribution";
-    render();
   }
 
   function makeSample() {
@@ -696,16 +683,13 @@
     rebalanceWeights();
   });
   $("loadSample").addEventListener("click", makeSample);
-  document.querySelectorAll('input[name="method"]').forEach((input) =>
-    input.addEventListener("change", syncMethodUi)
+  document.querySelectorAll('input[name="spreadFactor"]').forEach((input) =>
+    input.addEventListener("change", render)
   );
   numericIds.forEach((id) => $(id).addEventListener("input", render));
   ["exam1Weight", "exam2Weight"].forEach((id) =>
     $(id).addEventListener("input", (event) => rebalanceWeights(event.target))
   );
-  [
-    "studentIdColumn", "exam1Column", "exam2Column", "uncertaintySd",
-  ].forEach((id) => $(id).addEventListener("change", render));
   $("exam2ABSlider").addEventListener("input", () => {
     $("exam2AB").value = $("exam2ABSlider").value;
     render();
@@ -714,6 +698,5 @@
     $("exam2ABSlider").value = $("exam2AB").value;
   });
 
-  syncMethodUi();
   updateWeightTotal();
 })();

@@ -66,13 +66,10 @@
       <div class="file-status" id="fileStatus" hidden></div>
       <button class="text-button" id="loadSample" type="button">샘플 데이터 240명으로 시작하기</button>
 
-      <div class="mapping" id="mappingSection" hidden>
-        <div class="subheading"><h3>컬럼 매핑</h3><span id="rowCountBadge"></span></div>
-        <div class="field-grid two">
-          <label>학생 식별값<select id="studentIdColumn"></select></label>
-          <label>1차 점수<select id="exam1Column"></select></label>
-        </div>
-        <label class="full-field">2차 직접 입력 컬럼 (선택)<select id="exam2Column"><option value="">선택 안 함</option></select></label>
+      <div class="score-stats" id="scoreStats" hidden>
+        <div><span>학생 수</span><strong id="exam1Count">-</strong><small>명</small></div>
+        <div><span>1차 평균</span><strong id="exam1Mean">-</strong><small>점</small></div>
+        <div><span>1차 표준편차</span><strong id="exam1Sd">-</strong><small>점</small></div>
       </div>
     </section>
 
@@ -109,26 +106,26 @@
     <section class="panel scenario-panel">
       <div class="section-heading">
         <span class="step">03</span>
-        <div><h2>2차 예상점수</h2><p>점수 생성 방식을 선택하세요.</p></div>
+        <div><h2>2차 예상점수</h2><p>1차 통계를 기준으로 2차 시험의 난이도와 분포를 예상하세요.</p></div>
       </div>
-      <div class="method-list">
-        <label class="method active"><input type="radio" name="method" value="same" checked><span><strong>1차와 동일</strong><small>exam2 = exam1, 2차 만점 범위로 제한</small></span></label>
-        <label class="method"><input type="radio" name="method" value="adjust"><span><strong>1차 점수 ± 조정값</strong><small>모든 학생에게 같은 점수를 더하거나 뺍니다.</small></span></label>
-        <div class="method-options" id="adjustOptions" hidden><label>조정값 <div class="input-unit"><input id="adjustment" type="number" value="0"><em>점</em></div></label></div>
-        <label class="method"><input type="radio" name="method" value="distribution"><span><strong>평균·표준편차 변환</strong><small>1차 표준점수 순위를 유지합니다.</small></span></label>
-        <div class="method-options two" id="distributionOptions" hidden>
-          <label>2차 예상 평균 <input id="targetMean" type="number" value="70" step="0.1"></label>
-          <label>2차 예상 표준편차 <input id="targetSd" type="number" value="15" min="0" step="0.1"></label>
+      <div class="scenario-controls">
+        <label class="mean-control">2차 평균 변화
+          <div class="input-unit"><input id="meanAdjustment" type="number" value="0" step="1"><em>점</em></div>
+          <small>1차 평균보다 높으면 +, 낮으면 -</small>
+        </label>
+        <fieldset class="spread-control">
+          <legend>2차 점수 분포</legend>
+          <div class="segment-group">
+            <label><input type="radio" name="spreadFactor" value="0.8"><span>더 좁음<small>표준편차 × 0.8</small></span></label>
+            <label><input type="radio" name="spreadFactor" value="1" checked><span>비슷함<small>표준편차 × 1.0</small></span></label>
+            <label><input type="radio" name="spreadFactor" value="1.2"><span>더 넓음<small>표준편차 × 1.2</small></span></label>
+          </div>
+        </fieldset>
+        <div class="target-summary">
+          <span>2차 예상 분포</span>
+          <strong>평균 <b id="targetMeanDisplay">-</b>점 · 표준편차 <b id="targetSdDisplay">-</b>점</strong>
+          <small>1차 학생별 성취 경향을 약 80% 유지해 1,000회 모의 계산합니다.</small>
         </div>
-        <label class="method"><input type="radio" name="method" value="direct"><span><strong>직접 입력 컬럼 사용</strong><small>업로드 파일의 예상점수 컬럼을 사용합니다.</small></span></label>
-      </div>
-      <div class="uncertainty-box">
-        <div><strong>2차 학생별 점수 변동폭</strong><small>기준 예상점수 주변의 불확실성을 반영합니다.</small></div>
-        <select id="uncertaintySd">
-          <option value="5">작음 · 표준편차 5점</option>
-          <option value="10" selected>보통 · 표준편차 10점</option>
-          <option value="15">큼 · 표준편차 15점</option>
-        </select>
       </div>
     </section>
 
