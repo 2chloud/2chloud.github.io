@@ -156,7 +156,13 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 28px 0 0; }
 .slider-value span { font-size: 14px; font-weight: 800; margin-left: 4px; }
 .range { width: 100%; accent-color: var(--teal); }
 .range-labels { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; }
-.result-state { min-height: 280px; border: 1px dashed #b9c8c5; border-radius: 10px; display: grid; place-items: center; text-align: center; color: #879896; background: rgba(255,255,255,.45); font-size: 13px; line-height: 1.8; }
+.result-state { min-height: 230px; border: 1px dashed #b9c8c5; border-radius: 10px; display: grid; place-items: center; padding: 24px; text-align: center; color: #6f8587; background: rgba(255,255,255,.55); font-size: 13px; line-height: 1.6; }
+.empty-preview { width: min(100%, 580px); }
+.empty-preview > strong { display: block; color: var(--ink); font-size: 17px; }
+.empty-preview > p { margin: 5px 0 15px; color: var(--muted); }
+.empty-preview__items { display: flex; flex-wrap: wrap; justify-content: center; gap: 7px; }
+.empty-preview__items span { padding: 6px 9px; border: 1px solid #d5e2df; border-radius: 16px; background: white; color: var(--teal-dark); font-size: 12px; font-weight: 750; }
+.empty-preview > small { display: block; margin-top: 16px; color: var(--teal); font-size: 12px; font-weight: 700; }
 .metric-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
 .metric { min-height: 100px; padding: 13px 12px; border-radius: 8px; background: white; border: 1px solid var(--line); }
 .metric span { display: block; color: var(--muted); font-size: 12px; font-weight: 700; min-height: 24px; }
