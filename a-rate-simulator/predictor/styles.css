@@ -21,6 +21,13 @@ body { margin: 0; min-width: 320px; }
 body { font-size: 14px; line-height: 1.45; }
 button, input, select { font: inherit; }
 button { cursor: pointer; }
+.tool-switcher { min-height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 7px max(20px, calc((100% - 1240px) / 2)); background: #064d4a; color: white; }
+.tool-switcher a { color: #cce2de; text-decoration: none; font-size: 12px; font-weight: 800; }
+.tool-switcher__home { letter-spacing: -.01em; }
+.tool-switcher > div { display: flex; gap: 5px; }
+.tool-switcher > div a { padding: 7px 10px; border-radius: 5px; }
+.tool-switcher > div a.active { background: white; color: var(--teal-dark); }
+.tool-switcher > div a:not(.active):hover { background: rgba(255,255,255,.09); color: white; }
 .hero {
   background: var(--teal-dark);
   color: white;
@@ -224,6 +231,9 @@ footer p { margin: 0; }
   .performance-area .remove-area-button { width: 100%; }
 }
 @media (max-width: 600px) {
+  .tool-switcher { align-items: stretch; flex-direction: column; gap: 5px; padding: 9px 12px; }
+  .tool-switcher > div { display: grid; grid-template-columns: 1fr 1fr; }
+  .tool-switcher > div a { text-align: center; }
   .hero { padding: 24px 18px 48px; }
   .layout { padding: 0 12px; margin-top: -24px; }
   .panel { padding: 16px; }
