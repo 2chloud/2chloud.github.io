@@ -184,6 +184,11 @@ hr { border: 0; border-top: 1px solid var(--line); margin: 28px 0 0; }
 .recommendation { margin-top: 8px; background: #fff9ec; border-color: #ead8ad; box-shadow: none; display: flex; gap: 11px; align-items: center; padding: 12px 15px; }
 .recommendation__label { flex: 0 0 auto; background: #e9b756; color: white; border-radius: 4px; padding: 5px 8px; font-size: 11px; font-weight: 900; }
 .recommendation p { margin: 0; font-size: 13px; line-height: 1.55; }
+.result-actions { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 10px; }
+.result-actions p { margin: 0; color: var(--muted); font-size: 12px; }
+.export-button { flex: 0 0 auto; min-height: 38px; border: 1px solid var(--teal); border-radius: 6px; background: var(--teal); color: white; padding: 8px 13px; font-size: 13px; font-weight: 850; }
+.export-button:hover { background: var(--teal-dark); border-color: var(--teal-dark); }
+.export-button:focus-visible { outline: 3px solid rgba(13,112,109,.2); outline-offset: 2px; }
 .table-panel { margin-top: 12px; padding: 16px 0 0; overflow: hidden; }
 .table-heading { padding: 0 16px 12px; display: flex; justify-content: space-between; align-items: end; gap: 12px; }
 .range-inputs { display: flex; gap: 7px; }
@@ -234,6 +239,8 @@ footer p { margin: 0; }
   .remove-area-button { width: 100%; }
   .table-heading { align-items: flex-start; flex-direction: column; }
   .range-inputs { width: 100%; justify-content: space-between; }
+  .result-actions { align-items: stretch; flex-direction: column; }
+  .export-button { width: 100%; }
   .cut-summary { flex-wrap: wrap; }
   .cut-summary strong { margin-left: 0; }
   .neis-guide ol { display: block; }

@@ -3,10 +3,13 @@
 
   const SIMULATION_COUNT = 1000;
   const RECOMMENDATION_LIMIT = 23.9;
+  const EXAM_CORRELATION = 0.8;
   const state = {
     rows: [],
     columns: [],
     touchedWeights: new Set(),
+    sourceFileName: "",
+    lastReport: null,
   };
 
   const $ = (id) => document.getElementById(id);
@@ -195,6 +198,8 @@
       }];
     });
     if (!state.rows.length) throw new Error("유효한 1차 점수를 찾지 못했습니다.");
+    state.sourceFileName = fileName;
+    state.lastReport = null;
     const stats = exam1Statistics(state.rows);
     $("scoreStats").hidden = false;
     $("exam1Count").textContent = state.rows.length.toLocaleString("ko-KR");
@@ -282,8 +287,7 @@
   function buildTrialScores(students, config) {
     const random = seededRandom(20260612);
     const distribution = targetDistribution(students, config);
-    const correlation = 0.8;
-    const residualScale = Math.sqrt(1 - correlation ** 2);
+    const residualScale = Math.sqrt(1 - EXAM_CORRELATION ** 2);
     const performanceScore = config.performanceAreas.reduce((sum, area) =>
       sum + (clamp(area.expected, 0, area.max) / area.max * area.weight), 0
     );
@@ -296,7 +300,7 @@
         const zScore = distribution.exam1Sd > 0
           ? (student.exam1 - distribution.exam1Mean) / distribution.exam1Sd
           : 0;
-        return correlation * zScore + residualScale * normalRandom(random);
+        return EXAM_CORRELATION * zScore + residualScale * normalRandom(random);
       });
       const latentMean = latentScores.reduce((sum, value) => sum + value, 0) / latentScores.length;
       const latentSd = standardDeviation(latentScores, latentMean) || 1;
@@ -516,9 +520,19 @@
   function renderTable(trialScores, config) {
     const body = $("simulationBody");
     body.innerHTML = "";
+    const reportRows = [];
     simulationValues(config.exam2Max).forEach((cut) => {
       const result = forecast(trialScores, config, cut);
       const level = forecastStatus(result);
+      reportRows.push({
+        exam2AB: cut,
+        finalCut: result.cut,
+        medianRate: result.median,
+        lowerRate: result.lower,
+        upperRate: result.upper,
+        exceedProbability: result.exceedProbability,
+        status: level.label,
+      });
       const row = document.createElement("tr");
       if (Math.abs(cut - config.exam2AB) < 1e-9) row.className = "current";
       row.innerHTML = `
@@ -531,6 +545,7 @@
       `;
       body.append(row);
     });
+    return reportRows;
   }
 
   function renderRecommendation(trialScores, config) {
@@ -555,15 +570,19 @@
     $("exam2ABSlider").max = config.exam2Max || 100;
     $("sliderMaxLabel").textContent = `${config.exam2Max || 100}점`;
     $("sliderValue").textContent = format(config.exam2AB, Number.isInteger(config.exam2AB) ? 0 : 1);
-    if (!state.rows.length) return;
+    if (!state.rows.length) {
+      state.lastReport = null;
+      return;
+    }
 
     const students = cleanStudents(config);
+    let target = null;
     if (
       students.length
       && Number.isFinite(config.exam1Max) && config.exam1Max > 0
       && Number.isFinite(config.exam2Max) && config.exam2Max > 0
     ) {
-      const target = targetDistribution(students, config);
+      target = targetDistribution(students, config);
       $("targetMeanDisplay").textContent = format(target.mean, 1);
       $("targetSdDisplay").textContent = format(target.sd, 1);
     }
@@ -571,6 +590,7 @@
     $("weightValidation").textContent = warning;
     $("weightValidation").classList.toggle("error", Boolean(warning));
     if (warning) {
+      state.lastReport = null;
       $("results").hidden = true;
       $("emptyState").hidden = false;
       $("emptyState").innerHTML = `<span>${warning}</span>`;
@@ -599,7 +619,135 @@
         `${area.name} ${format(area.ab, 1)}/${format(area.max, 1)}×${format(area.weight, 1)}`
       ).join(" + ");
     renderRecommendation(trialScores, config);
-    renderTable(trialScores, config);
+    const simulationRows = renderTable(trialScores, config);
+    state.lastReport = {
+      config,
+      result,
+      level,
+      target,
+      simulationRows,
+      recommendation: $("recommendationText").textContent.trim(),
+      cutFormula: $("cutFormula").textContent,
+    };
+  }
+
+  function safeSheetName(name) {
+    return name.replace(/[\\/?*[\]:]/g, "_").slice(0, 31);
+  }
+
+  function setSheetWidths(sheet, widths) {
+    sheet["!cols"] = widths.map((width) => ({ wch: width }));
+  }
+
+  function exportExcel() {
+    if (!window.XLSX) {
+      showStatus("fileStatus", "Excel 모듈을 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.", true);
+      return;
+    }
+    if (!state.lastReport || !state.rows.length) return;
+
+    const { config, result, level, target, simulationRows, recommendation, cutFormula } = state.lastReport;
+    const workbook = XLSX.utils.book_new();
+
+    const scoreRows = [
+      ["studentId", "exam1"],
+      ...state.rows.map((row) => [row.studentId, row.exam1]),
+    ];
+    const scoreSheet = XLSX.utils.aoa_to_sheet(scoreRows);
+    scoreSheet["!autofilter"] = { ref: `A1:B${scoreRows.length}` };
+    scoreSheet["!freeze"] = { xSplit: 0, ySplit: 1 };
+    setSheetWidths(scoreSheet, [18, 12]);
+    XLSX.utils.book_append_sheet(workbook, scoreSheet, "1차 점수");
+
+    const summaryRows = [
+      ["A비율 시뮬레이션 결과"],
+      ["저장 일시", new Date().toLocaleString("ko-KR")],
+      ["원본 파일", state.sourceFileName || "-"],
+      ["모의 계산 횟수", SIMULATION_COUNT],
+      ["1·2차 성취 경향 상관 가정", EXAM_CORRELATION],
+      [],
+      ["결과 항목", "값", "설명"],
+      ["전체 학생 수", result.total, "빈 점수 칸은 제외"],
+      ["중앙 예상 A 인원", result.medianCount, "1,000회 모의 결과의 중앙값 기준"],
+      ["중앙 예상 A 비율", result.median / 100, "1,000회 모의 결과의 중앙값"],
+      ["90% 예측구간 하한", result.lower / 100, "하위 5%"],
+      ["90% 예측구간 상한", result.upper / 100, "상위 95%"],
+      ["23.9% 초과확률", result.exceedProbability / 100, "교육청 권고기준 초과 모의 횟수 비율"],
+      ["보수적 판정", level.label, level.description],
+      ["학기말 예상 A/B 환산컷", result.cut, cutFormula],
+      ["추천 2차 A/B 컷", recommendation],
+      [],
+      ["주의", "본 결과는 입력한 가정에 따른 참고용 시뮬레이션이며 확정 예측이 아닙니다."],
+    ];
+    const summarySheet = XLSX.utils.aoa_to_sheet(summaryRows);
+    summarySheet["!merges"] = [XLSX.utils.decode_range("A1:C1")];
+    summarySheet["!freeze"] = { xSplit: 0, ySplit: 7 };
+    ["B10", "B11", "B12", "B13"].forEach((cell) => {
+      if (summarySheet[cell]) summarySheet[cell].z = "0.0%";
+    });
+    setSheetWidths(summarySheet, [26, 24, 52]);
+    XLSX.utils.book_append_sheet(workbook, summarySheet, "결과 요약");
+
+    const spreadLabel = config.spreadFactor === 0.8
+      ? "더 좁음"
+      : config.spreadFactor === 1.2 ? "더 넓음" : "비슷함";
+    const settingRows = [
+      ["구분", "영역", "만점", "반영비율", "A/B 분할점수", "예상점수"],
+      ["지필평가", "1차 정기시험", config.exam1Max, config.exam1Weight / 100, config.exam1AB, "실제 점수 파일"],
+      ["지필평가", "2차 정기시험", config.exam2Max, config.exam2Weight / 100, config.exam2AB, "모의 생성"],
+      ...config.performanceAreas.map((area) => [
+        "수행평가", area.name, area.max, area.weight / 100, area.ab, area.expected,
+      ]),
+      [],
+      ["2차 예상 설정", "평균 변화", config.meanAdjustment, "점"],
+      ["2차 예상 설정", "점수 분포", spreadLabel, `표준편차 × ${config.spreadFactor}`],
+      ["2차 예상 분포", "예상 평균", target?.mean ?? "", "점"],
+      ["2차 예상 분포", "예상 표준편차", target?.sd ?? "", "점"],
+    ];
+    const settingSheet = XLSX.utils.aoa_to_sheet(settingRows);
+    settingSheet["!autofilter"] = { ref: `A1:F${2 + config.performanceAreas.length}` };
+    settingSheet["!freeze"] = { xSplit: 0, ySplit: 1 };
+    for (let row = 2; row <= 3 + config.performanceAreas.length; row += 1) {
+      const cell = `D${row}`;
+      if (settingSheet[cell]) settingSheet[cell].z = "0.0%";
+    }
+    setSheetWidths(settingSheet, [16, 22, 12, 14, 18, 18]);
+    XLSX.utils.book_append_sheet(workbook, settingSheet, "입력 설정");
+
+    const simulationData = [
+      ["2차 A/B", "학기말 환산컷", "중앙 A비율", "90% 하한", "90% 상한", "23.9% 초과확률", "판정"],
+      ...simulationRows.map((row) => [
+        row.exam2AB,
+        row.finalCut,
+        row.medianRate / 100,
+        row.lowerRate / 100,
+        row.upperRate / 100,
+        row.exceedProbability / 100,
+        row.status,
+      ]),
+    ];
+    const simulationSheet = XLSX.utils.aoa_to_sheet(simulationData);
+    simulationSheet["!autofilter"] = { ref: `A1:G${simulationData.length}` };
+    simulationSheet["!freeze"] = { xSplit: 0, ySplit: 1 };
+    for (let row = 2; row <= simulationData.length; row += 1) {
+      ["C", "D", "E", "F"].forEach((column) => {
+        const cell = `${column}${row}`;
+        if (simulationSheet[cell]) simulationSheet[cell].z = "0.0%";
+      });
+    }
+    setSheetWidths(simulationSheet, [12, 16, 14, 12, 12, 18, 10]);
+    XLSX.utils.book_append_sheet(workbook, simulationSheet, safeSheetName("2차 컷 시뮬레이션"));
+
+    const now = new Date();
+    const stamp = [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, "0"),
+      String(now.getDate()).padStart(2, "0"),
+      "_",
+      String(now.getHours()).padStart(2, "0"),
+      String(now.getMinutes()).padStart(2, "0"),
+    ].join("");
+    XLSX.writeFile(workbook, `A_rate_simulation_${stamp}.xlsx`, { compression: true });
   }
 
   function makeSample() {
@@ -683,6 +831,7 @@
     rebalanceWeights();
   });
   $("loadSample").addEventListener("click", makeSample);
+  $("exportExcel").addEventListener("click", exportExcel);
   document.querySelectorAll('input[name="spreadFactor"]').forEach((input) =>
     input.addEventListener("change", render)
   );
