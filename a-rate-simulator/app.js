@@ -620,6 +620,7 @@
       return;
     }
 
+    $("emptyState").textContent = "";
     $("emptyState").hidden = true;
     $("results").hidden = false;
     const trialScores = buildTrialScores(students, config);
