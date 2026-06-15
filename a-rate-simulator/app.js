@@ -11,6 +11,7 @@
     sourceFileName: "",
     lastReport: null,
   };
+  let renderTimer = null;
 
   const $ = (id) => document.getElementById(id);
   const numericIds = [
@@ -32,6 +33,28 @@
 
   function clamp(value, min, max) {
     return Math.min(max, Math.max(min, value));
+  }
+
+  function scheduleRender(delay = 180) {
+    window.clearTimeout(renderTimer);
+    renderTimer = window.setTimeout(render, delay);
+  }
+
+  function centeredSimulationRange(cut, maximum, halfWidth = 10) {
+    if (![cut, maximum].every(Number.isFinite) || maximum <= 0) return null;
+    const center = clamp(cut, 0, maximum);
+    const span = Math.min(halfWidth, center, maximum - center);
+    return {
+      start: Number((center - span).toFixed(2)),
+      end: Number((center + span).toFixed(2)),
+    };
+  }
+
+  function syncSimulationRange(cut = number("exam2AB")) {
+    const range = centeredSimulationRange(cut, number("exam2Max"));
+    if (!range) return;
+    $("rangeStart").value = range.start;
+    $("rangeEnd").value = range.end;
   }
 
   function parseCsv(text) {
@@ -597,12 +620,12 @@
       return;
     }
 
+    $("emptyState").hidden = true;
+    $("results").hidden = false;
     const trialScores = buildTrialScores(students, config);
     const result = forecast(trialScores, config);
     const level = forecastStatus(result);
 
-    $("emptyState").hidden = true;
-    $("results").hidden = false;
     $("totalStudents").textContent = result.total.toLocaleString("ko-KR");
     $("aCount").textContent = result.medianCount.toLocaleString("ko-KR");
     $("aRate").textContent = format(result.median);
@@ -818,7 +841,7 @@
     if (event.target.classList.contains("area-weight")) {
       rebalanceWeights(event.target);
     } else {
-      render();
+      scheduleRender();
     }
   });
   $("performanceAreas").addEventListener("click", (event) => {
@@ -835,16 +858,22 @@
   document.querySelectorAll('input[name="spreadFactor"]').forEach((input) =>
     input.addEventListener("change", render)
   );
-  numericIds.forEach((id) => $(id).addEventListener("input", render));
+  numericIds
+    .filter((id) => id !== "exam2AB")
+    .forEach((id) => $(id).addEventListener("input", () => scheduleRender()));
+  $("exam2Max").addEventListener("input", () => syncSimulationRange());
   ["exam1Weight", "exam2Weight"].forEach((id) =>
     $(id).addEventListener("input", (event) => rebalanceWeights(event.target))
   );
   $("exam2ABSlider").addEventListener("input", () => {
     $("exam2AB").value = $("exam2ABSlider").value;
+    syncSimulationRange();
     render();
   });
   $("exam2AB").addEventListener("input", () => {
     $("exam2ABSlider").value = $("exam2AB").value;
+    syncSimulationRange();
+    scheduleRender();
   });
 
   updateWeightTotal();
