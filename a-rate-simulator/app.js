@@ -793,7 +793,7 @@
       <label>영역명<input class="area-name" type="text" value="${values.name || "수행평가"}"></label>
       <label>만점<input class="area-max" type="number" min="1" value="${values.max ?? 100}"></label>
       <label>반영비율<input class="area-weight weight-input" type="number" min="0" max="100" step="0.1" value="${values.weight ?? 10}"></label>
-      <label>A/B 분할점수<input class="area-ab" type="number" min="0" value="${values.ab ?? 85}"></label>
+      <label>A/B 분할점수<input class="area-ab" type="number" min="0" value="${values.ab ?? 90}"></label>
       <label>예상점수<input class="area-expected" type="number" min="0" value="${values.expected ?? 100}"></label>
       <button class="remove-area-button" type="button" title="영역 삭제" aria-label="수행평가 영역 삭제">×</button>
     `;
