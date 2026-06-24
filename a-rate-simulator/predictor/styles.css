@@ -218,6 +218,8 @@ footer p { margin: 0; }
 .site-credit small, .site-credit strong { display: block; }
 .site-credit small { font-size: 9px; font-weight: 700; letter-spacing: .08em; opacity: .72; }
 .site-credit strong { margin-top: 3px; font-size: 14px; font-weight: 900; letter-spacing: .025em; }
+.creator-blog { flex: 0 0 auto; color: var(--muted); font-size: 12px; font-weight: 800; text-decoration: none; white-space: nowrap; }
+.creator-blog:hover { color: var(--teal); text-decoration: underline; }
 
 @media (max-width: 900px) {
   .hero { padding-bottom: 70px; }
@@ -260,4 +262,5 @@ footer p { margin: 0; }
   .neis-guide { margin-left: 0; }
   footer, .footer-notice { flex-direction: column; gap: 7px; }
   .site-credit { margin: 10px 0 0; align-self: flex-start; }
+  .creator-blog { margin-top: 2px; }
 }
