@@ -41,7 +41,8 @@ h1 { margin: 0; font-size: clamp(32px, 5vw, 50px); letter-spacing: -.045em; line
 .site-credit small, .site-credit strong { display: block; }
 .site-credit small { font-size: 9px; font-weight: 700; letter-spacing: .08em; opacity: .72; }
 .site-credit strong { margin-top: 3px; font-size: 14px; font-weight: 900; letter-spacing: .025em; }
-.creator-blog { display: block; width: fit-content; margin: 12px auto 0; color: var(--muted); font-size: 12px; font-weight: 800; text-decoration: none; }
+.creator-links { display: flex; flex-wrap: wrap; gap: 8px 14px; justify-content: center; margin-top: 12px; }
+.creator-blog { display: block; width: fit-content; color: var(--muted); font-size: 12px; font-weight: 800; text-decoration: none; }
 .creator-blog:hover { color: var(--teal); text-decoration: underline; }
 
 @media (max-width: 720px) {
