@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="시험 전 예측과 시험 후 집계를 위한 성취평가 분석 도구">
+  <title>성취평가 분석 도구</title>
+  <link rel="stylesheet" href="hub.css">
+</head>
+<body>
+  <main class="hub">
+    <header class="hub-hero">
+      <p class="eyebrow">교사를 위한 브라우저 도구</p>
+      <h1>성취평가 분석 도구</h1>
+      <p>지금 하려는 업무를 선택하세요. 두 도구는 같은 형식의 NEIS 파일을 사용하지만, 사용 시점과 점수의 의미가 다릅니다.</p>
+    </header>
+
+    <section class="task-grid" aria-label="업무 선택">
+      <a class="task-card predictor" href="predictor/index.html">
+        <span class="when">1차 시험 종료 후 · 2차 출제 전</span>
+        <span class="number">01</span>
+        <h2>학기말 A비율 예측</h2>
+        <p>1차 실제점수와 2차 시험 시나리오를 이용해 학기말 A비율의 예상 범위와 참고 컷을 살펴봅니다.</p>
+        <ul>
+          <li>2차 예상 평균·분포 설정</li>
+          <li>90% 예측구간과 23.9% 초과확률</li>
+          <li>2차 A/B 컷별 변화 확인</li>
+        </ul>
+        <strong>사전 예측 시작하기 <span>→</span></strong>
+      </a>
+
+      <a class="task-card collector" href="collector.html">
+        <span class="when">각 정기시험 채점 완료 후</span>
+        <span class="number">02</span>
+        <h2>성취도 인원 집계</h2>
+        <p>실제 시험 점수와 확정 분할점수를 이용해 전체·반별 A~E 인원과 제외값을 확인합니다.</p>
+        <ul>
+          <li>A-E / A-E-I 방식 지원</li>
+          <li>전체·반별 성취도 인원 계산</li>
+          <li>응시생 수와 제외 목록 검증</li>
+        </ul>
+        <strong>인원 집계 시작하기 <span>→</span></strong>
+      </a>
+    </section>
+
+    <section class="notice">
+      <strong>개인정보 보호</strong>
+      <p>두 도구 모두 업로드한 파일을 브라우저 안에서만 처리하며 서버에 저장하지 않습니다.</p>
+    </section>
+
+    <div class="site-credit" aria-label="made by 2choong">
+      <small>made by</small>
+      <strong>2choong</strong>
+    </div>
+    <div class="creator-links" aria-label="사용 안내 블로그">
+      <a class="creator-blog" href="https://blog.naver.com/ha_nal/224317717162" target="_blank" rel="noopener">A비율 예측 안내</a>
+      <a class="creator-blog" href="https://blog.naver.com/ha_nal/224318976898" target="_blank" rel="noopener">성취도 인원 집계 안내</a>
+    </div>
+  </main>
+</body>
+</html>
